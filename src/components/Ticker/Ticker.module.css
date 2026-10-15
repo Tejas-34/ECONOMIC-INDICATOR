@@ -85,7 +85,7 @@
   box-sizing: border-box;
   flex-shrink: 0;
   box-shadow: 0 0 6px rgba(255, 0, 0, 0.7);
-  animation: pulseLiveDot 1.25s ease-in-out infinite;
+  animation: pulseLiveDot 2.6s ease-in-out infinite;
 }
 
 .marqueeViewport {
@@ -168,15 +168,51 @@
 }
 
 @keyframes pulseLiveDot {
-  0%, 100% {
-    opacity: 1;
+  /* Initial steady red pause (~1.0s) */
+  0%,
+  38% {
+    background-color: #ff0000;
+    border-color: #ffacac;
+    box-shadow: 0 0 6px rgba(255, 0, 0, 0.7);
     transform: scale(1);
-    box-shadow: 0 0 7px rgba(255, 0, 0, 0.8), inset 0 0 2px rgba(255, 172, 172, 0.6);
   }
-  50% {
-    opacity: 0.35;
-    transform: scale(0.92);
-    box-shadow: 0 0 2px rgba(255, 0, 0, 0.2), inset 0 0 1px rgba(255, 172, 172, 0.2);
+  /* Blink 1: smoothly flash to completely white */
+  44%,
+  46% {
+    background-color: #ffffff;
+    border-color: #ffffff;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.95), 0 0 16px rgba(255, 255, 255, 0.7);
+    transform: scale(1.08);
+  }
+  /* Return to red */
+  52% {
+    background-color: #ff0000;
+    border-color: #ffacac;
+    box-shadow: 0 0 6px rgba(255, 0, 0, 0.7);
+    transform: scale(1);
+  }
+  /* Brief red gap between the 2 blinks (~160ms) */
+  58% {
+    background-color: #ff0000;
+    border-color: #ffacac;
+    box-shadow: 0 0 6px rgba(255, 0, 0, 0.7);
+    transform: scale(1);
+  }
+  /* Blink 2: smoothly flash to completely white */
+  64%,
+  66% {
+    background-color: #ffffff;
+    border-color: #ffffff;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.95), 0 0 16px rgba(255, 255, 255, 0.7);
+    transform: scale(1.08);
+  }
+  /* Return to red and remain steady red for remainder of loop */
+  72%,
+  100% {
+    background-color: #ff0000;
+    border-color: #ffacac;
+    box-shadow: 0 0 6px rgba(255, 0, 0, 0.7);
+    transform: scale(1);
   }
 }
 
