@@ -8,12 +8,12 @@
   align-items: center;
   justify-content: center;
   background-color: #030816;
-  background-image: url('/frame-20873273770.png');
+  background-image: url('/header-indicator-bg.png');
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
   overflow: hidden;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(65, 93, 136, 0.35);
 }
 
 .candlestickOverlay {
@@ -23,13 +23,12 @@
 .title {
   position: relative;
   z-index: 2;
-  font-family: 'Segoe UI', 'Roboto', sans-serif;
+  font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 36px;
   font-weight: 700;
   color: #ffffff;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
-  -webkit-text-stroke: 1px #000000;
-  text-shadow: 0 4px 16px rgba(0, 0, 0, 0.9);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
 }
 
