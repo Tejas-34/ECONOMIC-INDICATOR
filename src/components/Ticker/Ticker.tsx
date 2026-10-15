@@ -15,6 +15,7 @@ export const Ticker: React.FC = () => {
           <span>LIVE</span>
           <span className={styles.liveDot} aria-hidden="true" />
         </div>
+        <div className={styles.divider} aria-hidden="true" />
       </div>
 
       <div className={styles.marqueeViewport}>
@@ -27,16 +28,19 @@ export const Ticker: React.FC = () => {
             const formattedChange = `${quote.changePercent >= 0 ? '+' : ''}${quote.changePercent.toFixed(2)}%`;
 
             return (
-              <div key={`${quote.symbol}-${idx}`} className={styles.quoteItem}>
-                <span className={styles.symbol}>{quote.symbol}</span>
-                <span
-                  className={`${styles.priceChange} ${
-                    quote.isPositive ? styles.positive : styles.negative
-                  }`}
-                >
-                  {formattedPrice} ({formattedChange})
-                </span>
-              </div>
+              <React.Fragment key={`${quote.symbol}-${idx}`}>
+                <div className={styles.quoteItem}>
+                  <span className={styles.symbol}>{quote.symbol}</span>
+                  <span
+                    className={`${styles.priceChange} ${
+                      quote.isPositive ? styles.positive : styles.negative
+                    }`}
+                  >
+                    {formattedPrice} ({formattedChange})
+                  </span>
+                </div>
+                <div className={styles.divider} aria-hidden="true" />
+              </React.Fragment>
             );
           })}
         </div>
