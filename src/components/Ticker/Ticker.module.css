@@ -85,7 +85,7 @@
   box-sizing: border-box;
   flex-shrink: 0;
   box-shadow: 0 0 6px rgba(255, 0, 0, 0.7);
-  animation: pulseLiveDot 2.6s ease-in-out infinite;
+  animation: pulseLiveDot 3.8s ease-in-out infinite;
 }
 
 .marqueeViewport {
@@ -170,44 +170,44 @@
 @keyframes pulseLiveDot {
   /* Initial steady red pause (~1.0s) */
   0%,
-  38% {
+  26% {
     background-color: #ff0000;
     border-color: #ffacac;
     box-shadow: 0 0 6px rgba(255, 0, 0, 0.7);
     transform: scale(1);
   }
-  /* Blink 1: smoothly flash to completely white */
-  44%,
-  46% {
+  /* Blink 1: very smoothly fade into pure white and hold (~340ms) */
+  35%,
+  44% {
     background-color: #ffffff;
     border-color: #ffffff;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.95), 0 0 16px rgba(255, 255, 255, 0.7);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.95), 0 0 16px rgba(255, 255, 255, 0.75);
     transform: scale(1.08);
   }
-  /* Return to red */
-  52% {
+  /* Very smoothly fade back to red */
+  53% {
     background-color: #ff0000;
     border-color: #ffacac;
     box-shadow: 0 0 6px rgba(255, 0, 0, 0.7);
     transform: scale(1);
   }
-  /* Brief red gap between the 2 blinks (~160ms) */
-  58% {
+  /* Brief red pause between blinks (~230ms) */
+  59% {
     background-color: #ff0000;
     border-color: #ffacac;
     box-shadow: 0 0 6px rgba(255, 0, 0, 0.7);
     transform: scale(1);
   }
-  /* Blink 2: smoothly flash to completely white */
-  64%,
-  66% {
+  /* Blink 2: very smoothly fade into pure white and stay white for a while (~380ms) */
+  68%,
+  78% {
     background-color: #ffffff;
     border-color: #ffffff;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.95), 0 0 16px rgba(255, 255, 255, 0.7);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.95), 0 0 16px rgba(255, 255, 255, 0.75);
     transform: scale(1.08);
   }
-  /* Return to red and remain steady red for remainder of loop */
-  72%,
+  /* Very smoothly fade back to red and stay red before next cycle */
+  87%,
   100% {
     background-color: #ff0000;
     border-color: #ffacac;
