@@ -1,6 +1,5 @@
 import React from 'react';
 import { PanelState, SourceType } from '../../api/types';
-import { SourceFooter } from '../SourceFooter/SourceFooter';
 import { StatusBadge } from '../StatusBadge/StatusBadge';
 import { PanelSkeleton } from '../Skeleton/PanelSkeleton';
 import styles from './PanelShell.module.css';
@@ -9,9 +8,9 @@ export interface PanelShellProps {
   id?: string;
   title: string;
   subtitle?: string;
-  source: string;
-  sourceType: SourceType;
-  asOf: string;
+  source?: string;
+  sourceType?: SourceType;
+  asOf?: string;
   state: PanelState;
   onRetry?: () => void;
   children: React.ReactNode;
@@ -21,9 +20,6 @@ export const PanelShell: React.FC<PanelShellProps> = ({
   id,
   title,
   subtitle,
-  source,
-  sourceType,
-  asOf,
   state,
   onRetry,
   children,
@@ -87,11 +83,6 @@ export const PanelShell: React.FC<PanelShellProps> = ({
           /* Active or Stale */
           children
         )}
-      </div>
-
-      {/* Subtle compact footer */}
-      <div className={styles.footerContainer}>
-        <SourceFooter source={source} sourceType={sourceType} asOf={asOf} />
       </div>
     </article>
   );

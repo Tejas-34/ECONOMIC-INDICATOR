@@ -75,14 +75,14 @@ export function buildInflationChartOption(series: InflationSeries): echarts.ECha
       {
         name: 'Inflation Rate',
         type: 'line',
-        smooth: true,
-        showSymbol: true,
+        smooth: false,
+        showSymbol: false,
         symbol: 'circle',
-        symbolSize: 8,
+        symbolSize: 6,
         itemStyle: {
           color: '#00F0FF',
           borderColor: '#FFFFFF',
-          borderWidth: 2,
+          borderWidth: 1.5,
         },
         lineStyle: {
           width: 2.5,
@@ -121,6 +121,31 @@ export function buildInflationChartOption(series: InflationSeries): echarts.ECha
             },
           ],
           label: { show: false },
+        },
+        markPoint: {
+          symbol: 'roundRect',
+          symbolSize: [46, 22],
+          symbolOffset: [0, -14],
+          itemStyle: {
+            color: 'rgba(0, 0, 0, 0.75)',
+            borderColor: 'rgba(255, 255, 255, 0.25)',
+            borderWidth: 1,
+            borderRadius: 10,
+          },
+          label: {
+            show: true,
+            color: '#CCCCCC',
+            fontSize: 12,
+            fontWeight: 600,
+            fontFamily: 'Segoe UI, Selawik, system-ui, -apple-system, sans-serif',
+            formatter: (params: any) => params.value,
+          },
+          data: series
+            .filter((s) => s.cpiRate !== null && s.cpiRate !== undefined)
+            .map((s) => ({
+              coord: [s.year, s.cpiRate],
+              value: s.highlightLabel || `${s.cpiRate}%`,
+            })),
         },
         data,
       },

@@ -31,7 +31,8 @@ This directory contains the complete and exact implementation package for the **
 ### Chart Geometry & Styling
 - **Grid Range**: Y-axis `0%` to `10%` with interval `2%` (`0%`, `2%`, `4%`, `6%`, `8%`, `10%`).
 - **Timeline**: 5 annual points (`2021`, `2022`, `2023`, `2024`, `2025`).
-- **Data Points**: Displayed as prominent circular points on the line (`symbolSize: 8`, cyan `#00F0FF` with white border).
+- **Graph Stroke**: Strictly sharp linear line segments (`smooth: false`) with no circular point markers (`showSymbol: false`), faithfully matching `design/inflation.png`.
+- **Year Point Rate Badges**: Floating pill badges on each year point (`symbolSize: [46, 22]`, `rgba(0, 0, 0, 0.75)` background, `10px` border-radius) displaying the annual inflation rate.
 - **Vertical Gridlines**: 5 subtle vertical lines passing through each year (`rgba(255, 255, 255, 0.12)`, width `1px`).
 - **Baseline**: Horizontal solid line at `0%` (`rgba(255, 255, 255, 0.22)`, width `1.2px`).
 - **Stroke & Area Gradient**:
