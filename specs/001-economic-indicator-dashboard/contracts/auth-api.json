@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AuthApiContracts",
+  "type": "object",
+  "definitions": {
+    "LoginRequest": {
+      "type": "object",
+      "required": ["email", "password"],
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "password": { "type": "string" }
+      }
+    },
+    "LoginResponse": {
+      "type": "object",
+      "required": ["user", "accessToken", "expiresInSeconds"],
+      "properties": {
+        "user": {
+          "type": "object",
+          "required": ["id", "email", "name", "role"],
+          "properties": {
+            "id": { "type": "string" },
+            "email": { "type": "string" },
+            "name": { "type": "string" },
+            "role": { "type": "string", "enum": ["analyst", "admin"] }
+          }
+        },
+        "accessToken": { "type": "string" },
+        "expiresInSeconds": { "type": "integer" }
+      }
+    },
+    "RefreshTokenResponse": {
+      "type": "object",
+      "required": ["accessToken", "expiresInSeconds"],
+      "properties": {
+        "accessToken": { "type": "string" },
+        "expiresInSeconds": { "type": "integer" }
+      }
+    }
+  }
+}

@@ -1,0 +1,60 @@
+:root {
+  /* Colors */
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #cccccc;
+  --color-text-muted: #8e9bae;
+
+  --color-delta-pos: #45ff5b;
+  --color-ticker-up: #69f6b8;
+  --color-ticker-down: #ff716a;
+  --color-ticker-red: #ff0000;
+
+  --color-accent-cyan: #0fcbf0;
+  --color-bg-page: #030816;
+  --color-bg-panel: rgba(0, 22, 113, 0.2);
+  --color-bg-stat-tile: rgba(17, 96, 157, 0.14);
+
+  /* Borders */
+  --border-panel: 1px solid rgba(255, 255, 255, 0.08);
+  --border-stat-tile: 1.07px solid #415d88;
+  --border-chart-frame: 1px solid #5b5b5b;
+  --border-subtle: 1px solid #272727;
+
+  /* Radii */
+  --radius-panel: 12px;
+  --radius-tile: 12px;
+  --radius-badge: 4px;
+  --radius-pill: 35px;
+
+  /* Typography */
+  --font-primary: 'Segoe UI', 'Selawik', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-ticker: 'Manrope', 'Segoe UI', sans-serif;
+
+  --font-size-title: 36px;
+  --font-size-panel-title: 18px;
+  --font-size-stat-val: 32px;
+  --font-size-stat-delta: 16px;
+  --font-size-ticker: 17.08px;
+  --font-size-axis: 14px;
+  --font-size-footer: 13px;
+
+  /* Chart Accents */
+  --color-chart-yellow: #f4e15c;
+  --color-chart-green: #22d700;
+  --color-chart-cyan: #0fb8e6;
+  --color-chart-blue-dark: #061e44;
+  --color-chart-orange-top: #ffb012;
+  --color-chart-orange-bottom: #844b08;
+
+  /* Shadows & Glow */
+  --shadow-panel: 0px 4px 24px rgba(0, 0, 0, 0.4);
+  --glow-blob: #1d809c;
+  --glow-blur: 59.2px;
+
+  /* Canvas Layout */
+  --canvas-width: 1214px;
+  --canvas-height: 2159px;
+  --panel-width: 582px;
+  --panel-height: 544px;
+  --chart-height: 310px;
+}

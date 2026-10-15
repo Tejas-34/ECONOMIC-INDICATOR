@@ -1,0 +1,12 @@
+.gridContainer {
+  width: 1214px;
+  margin: 0 auto;
+  padding: 20px 15px 30px 15px;
+  display: grid;
+  grid-template-columns: repeat(2, 582px);
+  grid-auto-rows: 544px;
+  gap: 20px;
+  justify-content: center;
+  box-sizing: border-box;
+}
+

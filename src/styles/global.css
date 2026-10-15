@@ -1,0 +1,68 @@
+@import '@fontsource/manrope/600.css';
+@import '@fontsource/manrope/700.css';
+@import './tokens.css';
+
+/* Metric-compatible Segoe UI fallback if local Segoe UI not present */
+@font-face {
+  font-family: 'Selawik';
+  src:
+    local('Segoe UI'),
+    local('Segoe UI Regular'),
+    url('/fonts/selawik.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Selawik';
+  src:
+    local('Segoe UI Semibold'),
+    url('/fonts/selawik-semibold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Selawik';
+  src:
+    local('Segoe UI Bold'),
+    url('/fonts/selawik-bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 100%;
+  min-height: 100vh;
+  background-color: var(--color-bg-page);
+  color: var(--color-text-primary);
+  font-family: var(--font-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+  color: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}

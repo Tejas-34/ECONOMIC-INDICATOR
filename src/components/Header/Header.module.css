@@ -1,0 +1,35 @@
+.headerContainer {
+  position: relative;
+  width: 100%;
+  max-width: 1214px;
+  height: 86px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #030816;
+  background-image: url('/frame-20873273770.png');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.candlestickOverlay {
+  display: none;
+}
+
+.title {
+  position: relative;
+  z-index: 2;
+  font-family: 'Segoe UI', 'Roboto', sans-serif;
+  font-size: 36px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  -webkit-text-stroke: 1px #000000;
+  text-shadow: 0 4px 16px rgba(0, 0, 0, 0.9);
+}
+

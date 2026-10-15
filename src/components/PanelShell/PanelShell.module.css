@@ -1,0 +1,177 @@
+.panelCard {
+  position: relative;
+  width: var(--panel-width);
+  height: var(--panel-height);
+  background: linear-gradient(
+    180deg,
+    rgba(14, 22, 38, 0.88) 0%,
+    rgba(7, 12, 22, 0.95) 100%
+  );
+  backdrop-filter: blur(59.2px);
+  -webkit-backdrop-filter: blur(59.2px);
+  border-radius: var(--radius-panel);
+  border: 1px solid rgba(65, 93, 136, 0.35);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Chrome metallic corner sheen from Figma */
+.chromeCorner {
+  position: absolute;
+  left: -36px;
+  top: -18px;
+  width: 116px;
+  height: 100px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Ambient glow blobs */
+.glowTopLeft {
+  position: absolute;
+  left: -20px;
+  top: -20px;
+  width: 317px;
+  height: 120px;
+  background: #1d809c;
+  border-radius: 50%;
+  filter: blur(59.2px);
+  opacity: 0.22;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.glowBottomRight {
+  position: absolute;
+  right: -20px;
+  bottom: -20px;
+  width: 274px;
+  height: 120px;
+  background: #1d809c;
+  border-radius: 50%;
+  filter: blur(59.2px);
+  opacity: 0.22;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.headerBar {
+  height: 60px;
+  background: rgba(44, 44, 45, 0.45);
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 5;
+  flex-shrink: 0;
+}
+
+.titleArea {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title {
+  font-family: 'Segoe UI', 'Roboto', sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.subtitle {
+  font-family: 'Segoe UI', 'Roboto', sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: #00d2ff;
+}
+
+.statusContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panelBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 20px 4px 20px;
+  position: relative;
+  z-index: 2;
+  overflow: hidden;
+}
+
+.tilesRow {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 8px;
+  justify-content: center;
+}
+
+.chartContainer {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 290px;
+}
+
+.footerContainer {
+  padding: 4px 20px 8px 20px;
+  position: relative;
+  z-index: 5;
+  margin-top: auto;
+}
+
+.stateOverlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 24px;
+}
+
+.errorTitle {
+  color: #ff334b;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.errorMessage {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.retryButton {
+  padding: 6px 16px;
+  border-radius: 6px;
+  background-color: rgba(15, 203, 240, 0.15);
+  border: 1px solid var(--color-accent-cyan);
+  color: var(--color-accent-cyan);
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.retryButton:hover {
+  background-color: rgba(15, 203, 240, 0.3);
+}
+
+.infoNotice {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  font-style: italic;
+}
+

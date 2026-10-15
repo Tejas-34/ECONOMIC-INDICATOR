@@ -1,0 +1,52 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-primary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.live {
+  background-color: #e50914;
+  color: #ffffff;
+}
+
+.liveDot {
+  width: 6px;
+  height: 6px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  animation: pulse 1.5s infinite;
+}
+
+.stale {
+  background-color: rgba(244, 225, 92, 0.15);
+  border: 1px solid var(--color-chart-yellow);
+  color: var(--color-chart-yellow);
+}
+
+.unavailable {
+  background-color: rgba(142, 155, 174, 0.2);
+  border: 1px solid var(--color-text-muted);
+  color: var(--color-text-muted);
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

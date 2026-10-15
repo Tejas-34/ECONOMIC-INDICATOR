@@ -1,0 +1,87 @@
+.appCanvas {
+  width: var(--canvas-width);
+  min-height: var(--canvas-height);
+  margin: 0 auto;
+  position: relative;
+  background-color: #030816;
+  background-image: linear-gradient(
+      180deg,
+      rgba(3, 8, 22, 0.88) 0%,
+      rgba(3, 8, 22, 0.94) 100%
+    ),
+    url('/economic-indicator-1.png');
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-size: cover;
+  overflow-x: hidden;
+  box-shadow: 0 0 80px rgba(0, 0, 0, 0.8);
+}
+
+.floatingToolbar {
+  position: fixed;
+  bottom: 14px;
+  right: 18px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  background: rgba(7, 18, 42, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(65, 93, 136, 0.5);
+  border-radius: 30px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  font-size: 11px;
+}
+
+.analystInfo {
+  color: #d0d5dd;
+  font-size: 11px;
+}
+
+.simulatorButtonGroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.simBtn {
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cccccc;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.simBtn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+
+.simBtnActive {
+  background: rgba(15, 203, 240, 0.25);
+  border-color: #00d2ff;
+  color: #00d2ff;
+}
+
+.signOutBtn {
+  background: rgba(229, 9, 20, 0.2);
+  border: 1px solid rgba(229, 9, 20, 0.5);
+  color: #ffffff;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.signOutBtn:hover {
+  background: rgba(229, 9, 20, 0.4);
+}
+

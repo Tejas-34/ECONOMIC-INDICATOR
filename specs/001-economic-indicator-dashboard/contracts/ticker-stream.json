@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TickerStreamPayload",
+  "type": "object",
+  "required": ["timestamp", "quotes"],
+  "properties": {
+    "timestamp": { "type": "string" },
+    "quotes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["symbol", "currentPrice", "changePoints", "changePercent", "isPositive", "updatedAt"],
+        "properties": {
+          "symbol": { "type": "string" },
+          "currentPrice": { "type": "number" },
+          "changePoints": { "type": "number" },
+          "changePercent": { "type": "number" },
+          "isPositive": { "type": "boolean" },
+          "updatedAt": { "type": "string" }
+        }
+      }
+    }
+  }
+}

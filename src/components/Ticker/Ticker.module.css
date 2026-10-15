@@ -1,0 +1,140 @@
+.tickerContainer {
+  position: relative;
+  width: 100%;
+  max-width: 1214px;
+  height: 49px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  background: linear-gradient(
+    90deg,
+    rgba(7, 18, 42, 0.7) 0%,
+    rgba(32, 52, 92, 0.7) 30%,
+    rgba(51, 62, 84, 0.6) 60%,
+    rgba(0, 28, 93, 0.7) 100%
+  );
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.liveBadgeArea {
+  position: relative;
+  z-index: 5;
+  padding: 0 16px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  background: inherit;
+  box-shadow: 8px 0 16px rgba(0, 0, 0, 0.4);
+}
+
+.liveBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #e50914;
+  color: #ffffff;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-ticker);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.liveDot {
+  width: 7px;
+  height: 7px;
+  border: 1.5px solid #ffffff;
+  background-color: transparent;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.marqueeViewport {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    black 20px,
+    black calc(100% - 20px),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    black 20px,
+    black calc(100% - 20px),
+    transparent 100%
+  );
+}
+
+.marqueeTrack {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  animation: scrollMarquee 28s linear infinite;
+  will-change: transform;
+}
+
+.tickerContainer:hover .marqueeTrack {
+  animation-play-state: paused;
+}
+
+.quoteItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 28px;
+  font-family: var(--font-ticker);
+  font-size: var(--font-size-ticker);
+}
+
+.symbol {
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.priceChange {
+  font-weight: 600;
+  font-family: 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.positive {
+  color: #00e676;
+}
+
+.negative {
+  color: #ff0000;
+}
+
+@keyframes scrollMarquee {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.25;
+    transform: scale(0.75);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

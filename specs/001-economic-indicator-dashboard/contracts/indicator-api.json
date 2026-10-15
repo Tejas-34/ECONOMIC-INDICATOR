@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "IndicatorApiResponse",
+  "type": "object",
+  "required": ["id", "title", "source", "source_type", "as_of", "status", "values", "series"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "enum": ["gdp-growth", "debt-to-gdp", "trade-balance", "gst-collection", "inflation", "govt-expenditure"]
+    },
+    "title": { "type": "string" },
+    "subtitle": { "type": "string" },
+    "source": { "type": "string" },
+    "source_type": {
+      "type": "string",
+      "enum": ["NSE", "external"]
+    },
+    "as_of": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["ok", "stale", "unavailable"]
+    },
+    "values": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["label", "value", "deltaDirection"],
+        "properties": {
+          "label": { "type": "string" },
+          "value": { "type": ["number", "string", "null"] },
+          "formattedValue": { "type": "string" },
+          "unit": { "type": "string" },
+          "delta": { "type": ["number", "null"] },
+          "formattedDelta": { "type": "string" },
+          "deltaUnit": { "type": "string" },
+          "deltaDirection": {
+            "type": "string",
+            "enum": ["positive", "negative", "neutral"]
+          },
+          "sublabel": { "type": "string" },
+          "iconKey": { "type": "string" }
+        }
+      }
+    },
+    "series": {
+      "type": "array",
+      "items": { "type": "object" }
+    }
+  }
+}
