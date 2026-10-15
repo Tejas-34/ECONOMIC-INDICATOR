@@ -3,18 +3,41 @@
   min-height: var(--canvas-height);
   margin: 0 auto;
   position: relative;
-  background-color: #030816;
-  background-image: linear-gradient(
-      180deg,
-      rgba(3, 8, 22, 0.88) 0%,
-      rgba(3, 8, 22, 0.94) 100%
-    ),
-    url('/economic-indicator-1.png');
-  background-position: center top;
-  background-repeat: no-repeat;
-  background-size: cover;
+  isolation: isolate;
+  background-color: #050505;
+  background-image:
+    /* Row 1 ambient glows: GDP & Debt to GDP */
+    radial-gradient(ellipse 650px 450px at 10% 18%, rgba(0, 144, 146, 0.12) 0%, transparent 70%),
+    radial-gradient(ellipse 700px 500px at 90% 28%, rgba(29, 128, 156, 0.13) 0%, transparent 70%),
+    /* Row 2 ambient glows: Trade Balance & GST Collection */
+    radial-gradient(ellipse 650px 450px at 15% 50%, rgba(29, 128, 156, 0.10) 0%, transparent 70%),
+    radial-gradient(ellipse 700px 500px at 85% 60%, rgba(0, 144, 146, 0.12) 0%, transparent 70%),
+    /* Row 3 ambient glows: Inflation & Govt Expenditure */
+    radial-gradient(ellipse 650px 450px at 20% 82%, rgba(0, 144, 146, 0.11) 0%, transparent 70%),
+    radial-gradient(ellipse 700px 500px at 80% 90%, rgba(29, 128, 156, 0.12) 0%, transparent 70%),
+    /* Subtle dark navy gradient over near-black base */
+    linear-gradient(180deg, #071329 0%, #050c1b 20%, #050505 50%, #050c1b 80%, #071329 100%);
   overflow-x: hidden;
   box-shadow: 0 0 80px rgba(0, 0, 0, 0.8);
+}
+
+.appCanvas::before {
+  content: '';
+  position: absolute;
+  width: 2159px;
+  height: 1214px;
+  top: 0;
+  left: 1214px;
+  transform-origin: 0 0;
+  transform: rotate(90deg);
+  background-image: url('/economic-indicator-1.png');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  opacity: 0.055;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: -1;
 }
 
 .floatingToolbar {
@@ -84,4 +107,5 @@
 .signOutBtn:hover {
   background: rgba(229, 9, 20, 0.4);
 }
+
 
