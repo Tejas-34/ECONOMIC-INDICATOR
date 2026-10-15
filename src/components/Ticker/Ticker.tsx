@@ -12,7 +12,7 @@ export const Ticker: React.FC = () => {
     <nav className={styles.tickerContainer} aria-label="Live Market Quotes Ticker">
       <div className={styles.liveBadgeArea}>
         <div className={styles.liveBadge}>
-          <span>LIVE</span>
+          <span className={styles.liveText}>LIVE</span>
           <span className={styles.liveDot} aria-hidden="true" />
         </div>
         <div className={styles.divider} aria-hidden="true" />

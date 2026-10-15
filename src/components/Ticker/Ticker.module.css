@@ -32,29 +32,60 @@
 }
 
 .liveBadge {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  background: #d62d2a;
-  border: 1px solid rgba(255, 100, 100, 0.6);
-  box-shadow: 0 0 8px rgba(214, 45, 42, 0.4);
+  justify-content: space-between;
+  width: 92px;
+  height: 29px;
+  background-color: #d62d2a;
+  border-radius: 6.85px;
+  padding: 0 13px 0 15px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  border: 1px solid #ff0000;
+  box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.liveBadge::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 6.85px;
+  padding: 1px;
+  background: linear-gradient(
+    94.51deg,
+    rgba(255, 0, 0, 1) 0%,
+    rgba(255, 255, 255, 1) 53.55%,
+    rgba(255, 0, 0, 1) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.liveText {
   color: #ffffff;
-  padding: 3px 10px;
-  border-radius: 7px;
-  font-family: var(--font-ticker);
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
+  font-family: 'Segoe UI', 'Selawik', system-ui, -apple-system, sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  user-select: none;
 }
 
 .liveDot {
-  width: 9px;
-  height: 9px;
-  background-color: #ffffff;
-  border: 1.5px solid rgba(255, 180, 150, 0.85);
-  box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
+  border: 1px solid #ffacac;
+  background-color: #ff0000;
   box-sizing: border-box;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px rgba(255, 0, 0, 0.7);
+  animation: pulseLiveDot 1.25s ease-in-out infinite;
 }
 
 .marqueeViewport {
@@ -136,17 +167,24 @@
   }
 }
 
-@keyframes pulse {
-  0% {
+@keyframes pulseLiveDot {
+  0%, 100% {
     opacity: 1;
     transform: scale(1);
+    box-shadow: 0 0 7px rgba(255, 0, 0, 0.8), inset 0 0 2px rgba(255, 172, 172, 0.6);
   }
   50% {
-    opacity: 0.25;
-    transform: scale(0.75);
+    opacity: 0.35;
+    transform: scale(0.92);
+    box-shadow: 0 0 2px rgba(255, 0, 0, 0.2), inset 0 0 1px rgba(255, 172, 172, 0.2);
   }
-  100% {
-    opacity: 1;
-    transform: scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liveDot {
+    animation: none;
+  }
+  .marqueeTrack {
+    animation: none;
   }
 }
