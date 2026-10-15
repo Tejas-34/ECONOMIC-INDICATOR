@@ -13,11 +13,10 @@ interface GdpGrowthPanelProps {
 
 interface GdpSummaryCardProps {
   metric: StatTileMetric;
-  variant: 'india' | 'world';
   iconSrc: string;
 }
 
-const GdpSummaryCard: React.FC<GdpSummaryCardProps> = ({ metric, variant, iconSrc }) => {
+const GdpSummaryCard: React.FC<GdpSummaryCardProps> = ({ metric, iconSrc }) => {
   const displayValue =
     metric.value === null || metric.value === undefined
       ? '—'
@@ -30,12 +29,7 @@ const GdpSummaryCard: React.FC<GdpSummaryCardProps> = ({ metric, variant, iconSr
         `${metric.delta > 0 ? '+' : ''}${metric.delta}${metric.deltaUnit || 'pp'}`;
 
   return (
-    <div
-      className={`${styles.summaryCard} ${
-        variant === 'india' ? styles.indiaCard : styles.worldCard
-      }`}
-      data-testid="stat-tile"
-    >
+    <div className={styles.summaryCard} data-testid="stat-tile">
       <div className={styles.cardTopRow}>
         <img src={iconSrc} alt={metric.label} className={styles.cardIcon} />
         <span className={styles.cardLabel}>{metric.label}</span>
@@ -87,13 +81,11 @@ export const GdpGrowthPanel: React.FC<GdpGrowthPanelProps> = ({ initialStateOver
         <div className={styles.tilesRow}>
           <GdpSummaryCard
             metric={data.values.india}
-            variant="india"
-            iconSrc="/image-9450.png"
+            iconSrc="/india-flag-clean.png"
           />
           <GdpSummaryCard
             metric={data.values.world}
-            variant="world"
-            iconSrc="/image-9510.png"
+            iconSrc="/world-globe-clean.png"
           />
         </div>
       )}
