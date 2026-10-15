@@ -20,25 +20,7 @@
   transform: rotate(90deg);
   background: linear-gradient(0deg, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.95)), url('/economic-indicator-1.png') center / cover no-repeat;
   pointer-events: none;
-  z-index: -2;
-}
-
-.appCanvas::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
   z-index: -1;
-  background-image:
-    /* Strongest near lower-right and bottom edges (behind Government Expenditure & bottom edge) */
-    radial-gradient(ellipse 750px 550px at 88% 84%, rgba(29, 128, 156, 0.16) 0%, rgba(0, 144, 146, 0.08) 42%, transparent 72%),
-    radial-gradient(ellipse 650px 480px at 72% 94%, rgba(0, 144, 146, 0.13) 0%, transparent 68%),
-    /* Soft localized glow behind Row 3 left (Inflation) */
-    radial-gradient(ellipse 550px 380px at 22% 80%, rgba(0, 144, 146, 0.09) 0%, transparent 70%),
-    /* Subtle localized glow behind Row 2 right (GST Tax Collection) */
-    radial-gradient(ellipse 580px 400px at 86% 56%, rgba(29, 128, 156, 0.09) 0%, transparent 70%),
-    /* Subtle localized glow behind Row 2 left (Trade Balance) */
-    radial-gradient(ellipse 500px 350px at 16% 52%, rgba(0, 144, 146, 0.06) 0%, transparent 65%);
 }
 
 .floatingToolbar {
