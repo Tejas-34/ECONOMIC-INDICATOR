@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler
-from backend.app.config import settings
+from backend.app.config import settings, validate_startup_secrets
 from backend.app.routes import admin, auth, health, indicators, ticker
 from backend.app.security.rate_limit import limiter
 
@@ -20,8 +20,9 @@ from backend.app.security.rate_limit import limiter
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan context managing database pool, background scheduler, and initial startup tasks."""
-    # Startup
+    # Startup Guard & Configuration Validation
     if settings.DATA_MODE == "live":
+        validate_startup_secrets(settings)
         try:
             from backend.app.db import init_pool
             await init_pool()

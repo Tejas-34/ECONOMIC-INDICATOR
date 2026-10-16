@@ -3,7 +3,9 @@ from pathlib import Path
 from typing import Dict, List
 from fastapi import APIRouter, Depends, Header, HTTPException, Response, status
 from backend.app.config import settings
+from backend.app.schemas.auth import AuthUser
 from backend.app.schemas.envelope import DashboardResponse, StandardIndicatorEnvelope
+from backend.app.security.dependencies import get_current_user
 
 router = APIRouter(prefix="/api", tags=["Indicators"])
 
@@ -57,7 +59,8 @@ def load_fixture_envelope(slug: str) -> StandardIndicatorEnvelope:
 async def get_indicator(
     indicator_slug: str,
     response: Response,
-    if_none_match: str | None = Header(default=None)
+    if_none_match: str | None = Header(default=None),
+    user: AuthUser = Depends(get_current_user)
 ) -> StandardIndicatorEnvelope:
     if settings.DATA_MODE == "mock":
         envelope = load_fixture_envelope(indicator_slug)
@@ -66,8 +69,10 @@ async def get_indicator(
         response.headers["ETag"] = etag
         response.headers["Cache-Control"] = "private, max-age=60"
         if if_none_match and if_none_match == etag:
-            response.status_code = status.HTTP_304_NOT_MODIFIED
-            return Response(status_code=status.HTTP_304_NOT_MODIFIED)
+            return Response(
+                status_code=status.HTTP_304_NOT_MODIFIED,
+                headers={"ETag": etag, "Cache-Control": "private, max-age=60"}
+            )
         return envelope
 
     # Live mode delegate
@@ -82,7 +87,8 @@ async def get_indicator(
 )
 async def get_dashboard(
     response: Response,
-    if_none_match: str | None = Header(default=None)
+    if_none_match: str | None = Header(default=None),
+    user: AuthUser = Depends(get_current_user)
 ) -> DashboardResponse:
     if settings.DATA_MODE == "mock":
         envelopes = [load_fixture_envelope(slug) for slug in ALL_INDICATOR_KEYS]
@@ -95,8 +101,10 @@ async def get_dashboard(
         response.headers["ETag"] = etag
         response.headers["Cache-Control"] = "private, max-age=60"
         if if_none_match and if_none_match == etag:
-            response.status_code = status.HTTP_304_NOT_MODIFIED
-            return Response(status_code=status.HTTP_304_NOT_MODIFIED)
+            return Response(
+                status_code=status.HTTP_304_NOT_MODIFIED,
+                headers={"ETag": etag, "Cache-Control": "private, max-age=60"}
+            )
         return dashboard
 
     # Live mode delegate

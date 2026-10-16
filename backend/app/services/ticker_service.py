@@ -5,7 +5,7 @@ from backend.app.cache import get_cached_ticker, set_cached_ticker
 from backend.app.collectors.bse import BSECollector
 from backend.app.collectors.nse import NSECollector
 from backend.app.config import settings
-from backend.app.market_hours import evaluate_market_status
+from backend.app.market_hours import evaluate_market_status, compute_read_time_market_status
 from backend.app.schemas.ticker import MarketIndexQuote, TickerSnapshotPayload
 
 _ticker_job_lock = asyncio.Lock()
@@ -14,7 +14,7 @@ _bse_collector = BSECollector()
 
 
 async def run_ticker_ingestion_job() -> Dict[str, Any]:
-    """Execute live quote collection across NSE and BSE adapters and broadcast to SSE subscribers."""
+    """Execute live quote collection across NSE and BSE adapters and broadcast snapshot to SSE subscribers."""
     if _ticker_job_lock.locked():
         return {"status": "skipped_already_running"}
 
@@ -23,7 +23,7 @@ async def run_ticker_ingestion_job() -> Dict[str, Any]:
             return {"status": "skipped_mock_mode", "quotes": 0}
 
         from backend.app.db import execute_many, execute_write
-        from backend.app.sse import broadcast_quote
+        from backend.app.sse import broadcast_quote, broadcast_snapshot
 
         started_at = datetime.now(timezone.utc)
         quotes: List[Dict[str, Any]] = []
@@ -42,9 +42,10 @@ async def run_ticker_ingestion_job() -> Dict[str, Any]:
             if quotes:
                 latest_upserts = []
                 history_inserts = []
+                quote_models: List[MarketIndexQuote] = []
 
                 for q in quotes:
-                    m_status = evaluate_market_status(q["as_of"])
+                    m_status = compute_read_time_market_status(q["as_of"])
                     q["market_status"] = m_status
 
                     latest_upserts.append((
@@ -55,9 +56,17 @@ async def run_ticker_ingestion_job() -> Dict[str, Any]:
                         q["symbol"], q["last"], q["pct_change"], q["as_of"]
                     ))
 
-                    # Broadcast to live SSE stream
+                    # Model validation
                     quote_model = MarketIndexQuote.model_validate(q)
+                    quote_models.append(quote_model)
                     await broadcast_quote(quote_model)
+
+                # Broadcast consolidated snapshot with all quotes (I4)
+                snapshot_payload = TickerSnapshotPayload(
+                    timestamp=datetime.now(timezone.utc).isoformat(),
+                    quotes=quote_models
+                )
+                await broadcast_snapshot(snapshot_payload)
 
                 # Batch upsert ticker_latest
                 await execute_many("""
@@ -103,9 +112,12 @@ async def run_ticker_ingestion_job() -> Dict[str, Any]:
 
 
 async def get_latest_quotes_snapshot() -> TickerSnapshotPayload:
-    """Fetch latest quotes from database with in-memory caching."""
+    """Fetch latest quotes from database with read-time market status computation (I5)."""
     cached = get_cached_ticker("ticker_snapshot")
     if cached:
+        for q in cached.quotes:
+            as_of_dt = datetime.fromisoformat(q.as_of) if isinstance(q.as_of, str) else q.as_of
+            q.market_status = compute_read_time_market_status(as_of_dt)
         return cached
 
     from backend.app.db import fetch_all
@@ -116,12 +128,12 @@ async def get_latest_quotes_snapshot() -> TickerSnapshotPayload:
     """)
 
     if not rows:
-        # Fallback to empty snapshot
         now_iso = datetime.now(timezone.utc).isoformat()
         return TickerSnapshotPayload(timestamp=now_iso, quotes=[])
 
     quote_models = []
     for r in rows:
+        m_status = compute_read_time_market_status(r["as_of"])
         q_dict = {
             "symbol": r["symbol"],
             "name": r["name"],
@@ -130,7 +142,7 @@ async def get_latest_quotes_snapshot() -> TickerSnapshotPayload:
             "pct_change": float(r["pct_change"]),
             "as_of": r["as_of"].isoformat(),
             "source": "NSE" if r["source_id"] == "nse" else "BSE",
-            "market_status": r["market_status"]
+            "market_status": m_status
         }
         quote_models.append(MarketIndexQuote.model_validate(q_dict))
 

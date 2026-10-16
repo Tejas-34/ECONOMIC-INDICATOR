@@ -130,14 +130,16 @@ export interface TickerStreamPayload {
 /* Authentication */
 export interface AuthUser {
   id: string;
+  username?: string;
   email: string;
-  name: string;
-  role: 'analyst' | 'admin';
+  name?: string;
+  role: 'viewer' | 'admin';
 }
 
 export interface LoginCredentials {
-  email: string;
-  password: string;
+  username?: string;
+  email?: string;
+  password?: string;
 }
 
 export interface LoginResponse {

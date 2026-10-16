@@ -3,7 +3,7 @@ import { useTickerStream } from '../../hooks/useTickerStream';
 import styles from './Ticker.module.css';
 
 export const Ticker: React.FC = () => {
-  const { quotes } = useTickerStream();
+  const { quotes, marketStatus, lastUpdated } = useTickerStream();
 
   // Create duplicate set for seamless continuous marquee loop
   const displayQuotes = quotes.length > 0 ? [...quotes, ...quotes, ...quotes] : [];
@@ -11,9 +11,28 @@ export const Ticker: React.FC = () => {
   return (
     <nav className={styles.tickerContainer} aria-label="Live Market Quotes Ticker">
       <div className={styles.liveBadgeArea}>
-        <div className={styles.liveBadge}>
-          <span className={styles.liveText}>LIVE</span>
-          <span className={styles.liveDot} aria-hidden="true" />
+        <div
+          className={`${styles.liveBadge} ${
+            marketStatus === 'CLOSED'
+              ? styles.closedBadge
+              : marketStatus === 'STALE'
+              ? styles.staleBadge
+              : ''
+          }`}
+          title={lastUpdated ? `Last updated: ${lastUpdated}` : undefined}
+          data-testid="ticker-status-badge"
+        >
+          <span className={styles.liveText}>{marketStatus}</span>
+          <span
+            className={`${styles.liveDot} ${
+              marketStatus === 'CLOSED'
+                ? styles.closedDot
+                : marketStatus === 'STALE'
+                ? styles.staleDot
+                : ''
+            }`}
+            aria-hidden="true"
+          />
         </div>
         <div className={styles.divider} aria-hidden="true" />
       </div>

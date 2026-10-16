@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DashboardResponse",
+  "type": "object",
+  "required": ["indicators", "as_of", "fetched_at"],
+  "properties": {
+    "indicators": {
+      "type": "array",
+      "items": {
+        "$ref": "indicator-api.json"
+      }
+    },
+    "as_of": { "type": "string" },
+    "fetched_at": { "type": "string", "format": "date-time" }
+  }
+}

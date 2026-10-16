@@ -112,10 +112,15 @@ class StandardIndicatorEnvelope(BaseModel):
                 for i, tile in enumerate(self.tiles)
             }
 
-        # Harmonize source_type
+        # Harmonize source and source_type
         if isinstance(self.source, SourceProvenance):
-            self.source_type = self.source.type
-        elif self.source and not self.source_type:
+            if not self.source_type:
+                self.source_type = "NSE" if self.source.type.upper() == "NSE" else "external"
+            self.source = self.source.name
+
+        if self.source_type:
+            self.source_type = "NSE" if str(self.source_type).upper() == "NSE" else "external"
+        else:
             self.source_type = "external"
 
         return self

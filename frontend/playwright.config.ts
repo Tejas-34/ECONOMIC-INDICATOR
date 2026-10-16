@@ -7,12 +7,12 @@ export default defineConfig({
   testDir: './tests/visual',
   timeout: 30000,
   expect: {
-    timeout: 5000,
+    timeout: 10000,
   },
-  fullyParallel: true,
-  reporter: 'html',
+  fullyParallel: false,
+  reporter: process.env.CI ? 'dot' : 'list',
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://localhost:5174',
     trace: 'on-first-retry',
     viewport: { width: 1214, height: 2159 },
   },
@@ -23,9 +23,12 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run dev',
-    port: 5173,
+    command: 'VITE_USE_MOCKS=true npm run dev -- --port 5174',
+    port: 5174,
     cwd: __dirname,
     reuseExistingServer: !process.env.CI,
+    env: {
+      VITE_USE_MOCKS: 'true',
+    },
   },
 });

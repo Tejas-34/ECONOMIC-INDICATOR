@@ -28,6 +28,12 @@ class MarketIndexQuote(BaseModel):
     @classmethod
     def harmonize_quote_inputs(cls, data: Any) -> Any:
         if isinstance(data, dict):
+            # Convert datetime objects to ISO strings if passed
+            if isinstance(data.get("as_of"), datetime):
+                data["as_of"] = data["as_of"].isoformat()
+            if isinstance(data.get("updatedAt"), datetime):
+                data["updatedAt"] = data["updatedAt"].isoformat()
+
             # Map frontend names to canonical
             if "currentPrice" in data and "last" not in data:
                 data["last"] = data["currentPrice"]

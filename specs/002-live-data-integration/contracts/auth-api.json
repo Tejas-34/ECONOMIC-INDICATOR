@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AuthApiContracts",
+  "definitions": {
+    "LoginRequest": {
+      "type": "object",
+      "required": ["username", "password"],
+      "properties": {
+        "username": { "type": "string" },
+        "password": { "type": "string" }
+      }
+    },
+    "AuthUser": {
+      "type": "object",
+      "required": ["id", "username", "role"],
+      "properties": {
+        "id": { "type": "string" },
+        "username": { "type": "string" },
+        "email": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["viewer", "admin"] }
+      }
+    },
+    "LoginResponse": {
+      "type": "object",
+      "required": ["user", "accessToken", "expiresInSeconds"],
+      "properties": {
+        "user": { "$ref": "#/definitions/AuthUser" },
+        "accessToken": { "type": "string" },
+        "expiresInSeconds": { "type": "integer", "const": 3600 }
+      }
+    },
+    "StreamTicketResponse": {
+      "type": "object",
+      "required": ["ticket", "expires_in_seconds"],
+      "properties": {
+        "ticket": { "type": "string" },
+        "expires_in_seconds": { "type": "integer", "const": 30 }
+      }
+    }
+  }
+}

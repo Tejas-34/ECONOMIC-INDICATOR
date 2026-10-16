@@ -39,9 +39,25 @@
 }
 
 .asOfDate {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 11px;
   color: rgba(255, 255, 255, 0.45);
   white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.estimateBadge {
+  font-size: 9px;
+  font-weight: 600;
+  color: #ffb012;
+  background: rgba(255, 176, 18, 0.12);
+  border: 1px solid rgba(255, 176, 18, 0.35);
+  padding: 1px 4px;
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   flex-shrink: 0;
 }
 

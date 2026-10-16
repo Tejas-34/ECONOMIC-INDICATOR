@@ -1,71 +1,71 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "StandardIndicatorEnvelope",
+  "title": "IndicatorResponse",
   "type": "object",
-  "required": ["indicator", "title", "tiles", "series", "source", "as_of", "fetched_at", "status"],
+  "required": [
+    "id",
+    "title",
+    "source",
+    "source_type",
+    "as_of",
+    "status",
+    "values",
+    "series"
+  ],
   "properties": {
-    "indicator": {
+    "id": {
       "type": "string",
-      "enum": ["gdp-growth", "debt-to-gdp", "trade", "gst", "inflation", "government-expenditure"]
+      "enum": [
+        "gdp-growth",
+        "debt-to-gdp",
+        "trade-balance",
+        "gst-collection",
+        "inflation",
+        "govt-expenditure"
+      ]
     },
     "title": { "type": "string" },
     "subtitle": { "type": ["string", "null"] },
-    "tiles": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["label", "value", "unit", "change", "change_unit"],
-        "properties": {
-          "label": { "type": "string" },
-          "value": { "type": ["number", "null"] },
-          "unit": { "type": ["string", "null"] },
-          "change": { "type": ["number", "null"] },
-          "change_unit": { "type": ["string", "null"] }
-        }
+    "source": { "type": "string" },
+    "source_type": {
+      "type": "string",
+      "enum": ["NSE", "external"]
+    },
+    "as_of": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["ok", "stale", "unavailable"]
+    },
+    "values": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/StatTileMetric"
       }
     },
     "series": {
       "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["name", "points"],
-        "properties": {
-          "name": { "type": "string" },
-          "points": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": ["period", "value"],
-              "properties": {
-                "period": { "type": "string" },
-                "value": { "type": ["number", "null"] },
-                "basis": {
-                  "type": ["string", "null"],
-                  "enum": ["actual", "revised_estimate", "budget_estimate", null]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "source": {
+      "items": { "type": "object" }
+    }
+  },
+  "definitions": {
+    "StatTileMetric": {
       "type": "object",
-      "required": ["name", "type", "url"],
+      "required": ["label", "value", "deltaDirection"],
       "properties": {
-        "name": { "type": "string" },
-        "type": {
+        "label": { "type": "string" },
+        "value": { "type": ["number", "string", "null"] },
+        "formattedValue": { "type": "string" },
+        "unit": { "type": ["string", "null"] },
+        "delta": { "type": ["number", "null"] },
+        "formattedDelta": { "type": ["string", "null"] },
+        "deltaUnit": { "type": ["string", "null"] },
+        "deltaDirection": {
           "type": "string",
-          "enum": ["nse", "external", "external-curated"]
+          "enum": ["positive", "negative", "neutral"]
         },
-        "url": { "type": "string" }
+        "sublabel": { "type": ["string", "null"] },
+        "iconKey": { "type": ["string", "null"] }
       }
-    },
-    "as_of": { "type": "string" },
-    "fetched_at": { "type": "string", "format": "date-time" },
-    "status": {
-      "type": "string",
-      "enum": ["ok", "stale", "unavailable"]
     }
   }
 }

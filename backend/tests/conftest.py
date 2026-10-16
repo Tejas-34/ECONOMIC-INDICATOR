@@ -12,6 +12,7 @@ if str(REPO_ROOT) not in sys.path:
 os.environ["DATA_MODE"] = "mock"
 
 from backend.app.main import app
+from backend.app.security.jwt import create_access_token
 from backend.app.security.rate_limit import limiter
 
 
@@ -33,3 +34,20 @@ def reset_rate_limits():
 def client():
     with TestClient(app) as test_client:
         yield test_client
+
+
+@pytest.fixture(scope="session")
+def auth_headers():
+    token = create_access_token({
+        "sub": "usr_mock_001",
+        "username": "analyst@adityabirla.com",
+        "role": "admin"
+    })
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture(scope="session")
+def auth_client(auth_headers):
+    with TestClient(app, headers=auth_headers) as test_client:
+        yield test_client
+

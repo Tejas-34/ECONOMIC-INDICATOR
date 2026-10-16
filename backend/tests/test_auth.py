@@ -61,3 +61,39 @@ def test_single_use_stream_ticket():
 
     # Replay/second consumption fails
     assert consume_stream_ticket(ticket) is False
+
+
+def test_all_protected_routes_require_bearer(client, auth_client):
+    """Verify all protected data and admin routes return HTTP 401 when called without Bearer."""
+    protected_get_routes = [
+        "/api/dashboard",
+        "/api/indicators/gdp-growth",
+        "/api/indicators/debt-to-gdp",
+        "/api/indicators/trade-balance",
+        "/api/indicators/gst-collection",
+        "/api/indicators/inflation",
+        "/api/indicators/govt-expenditure",
+        "/api/ticker",
+        "/api/auth/me",
+    ]
+
+    for route in protected_get_routes:
+        # Unauthenticated -> 401
+        unauth_resp = client.get(route)
+        assert unauth_resp.status_code == 401, f"Route {route} did not return 401 when unauthenticated"
+        assert unauth_resp.headers.get("WWW-Authenticate") == "Bearer"
+
+        # Authenticated -> 200
+        auth_resp = auth_client.get(route)
+        assert auth_resp.status_code == 200, f"Route {route} failed with authenticated client"
+
+    # POST /api/auth/stream-ticket
+    unauth_ticket = client.post("/api/auth/stream-ticket")
+    assert unauth_ticket.status_code == 401
+    auth_ticket = auth_client.post("/api/auth/stream-ticket")
+    assert auth_ticket.status_code == 200
+
+    # Public routes should NOT return 401
+    assert client.get("/health").status_code == 200
+    assert client.get("/").status_code == 200
+

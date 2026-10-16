@@ -3,10 +3,13 @@ services:
     image: postgres:16-alpine
     container_name: economic_db_prod
     restart: always
+    env_file:
+      - path: ../.env
+        required: false
     environment:
-      POSTGRES_DB: economic_indicators
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-prod_secure_db_pass_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-economic_indicators}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     # IMPORTANT: Postgres binds strictly to the internal network. No published ports to the public host interface.
     networks:
       - internal_net
@@ -27,12 +30,15 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    env_file:
+      - path: ../.env
+        required: false
     environment:
-      DATA_MODE: live
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-prod_secure_db_pass_2026}@db:5432/economic_indicators
-      JWT_SECRET: ${JWT_SECRET:-c2VjdXJlX2p3dF9zZWNyZXRfa2V5X2Zvcl9lY29ub21pY19pbmRpY2F0b3JfZGFzaGJvYXJkXzIwMjY=}
+      DATA_MODE: ${DATA_MODE:-live}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/economic_indicators}
+      JWT_SECRET: ${JWT_SECRET}
       EVAL_USERNAME: ${EVAL_USERNAME:-analyst@adityabirla.com}
-      EVAL_PASSWORD_HASH: ${EVAL_PASSWORD_HASH:-$2b$12$e6mO7jJ6g5lWkY8g2k.yquMhT6UfO6b5HjCgV4s9R2E1k3m8t2Y1e}
+      EVAL_PASSWORD: ${EVAL_PASSWORD}
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost}
     networks:
       - internal_net

@@ -15,28 +15,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [expiresAt, setExpiresAt] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const refreshTimerRef = useRef<number | null>(null);
+  const expiryTimerRef = useRef<number | null>(null);
 
-  const scheduleTokenRefresh = useCallback((expiresInSeconds: number) => {
-    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
-    // Refresh 60 seconds before expiry (or 10s if short expiry)
-    const refreshDelayMs = Math.max((expiresInSeconds - 60) * 1000, 5000);
+  // 60-minute countdown session expiry timer (I3 - no refresh token)
+  const startSessionExpiryTimer = useCallback((expiresInSeconds: number) => {
+    if (expiryTimerRef.current) clearTimeout(expiryTimerRef.current);
+    const delayMs = Math.max(expiresInSeconds * 1000, 1000);
 
-    refreshTimerRef.current = window.setTimeout(async () => {
-      // In mock/production, silent refresh
-      try {
-        const res = await apiLogin({ email: 'analyst@adityabirla.com', password: 'refresh' });
-        setAccessTokenState(res.accessToken);
-        setAuthToken(res.accessToken);
-        setExpiresAt(Date.now() + res.expiresInSeconds * 1000);
-        scheduleTokenRefresh(res.expiresInSeconds);
-      } catch {
-        // Failed refresh terminates session
-        setUser(null);
-        setAccessTokenState(null);
-        setAuthToken(null);
+    expiryTimerRef.current = window.setTimeout(() => {
+      setUser(null);
+      setAccessTokenState(null);
+      setExpiresAt(null);
+      setAuthToken(null);
+      if (typeof window !== 'undefined' && window.location) {
+        if (!window.location.pathname.startsWith('/login')) {
+          window.location.href = '/login?session_expired=true';
+        }
       }
-    }, refreshDelayMs);
+    }, delayMs);
   }, []);
 
   const login = useCallback(
@@ -49,16 +45,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setAuthToken(response.accessToken);
         const expiry = Date.now() + response.expiresInSeconds * 1000;
         setExpiresAt(expiry);
-        scheduleTokenRefresh(response.expiresInSeconds);
+        startSessionExpiryTimer(response.expiresInSeconds);
       } finally {
         setIsLoading(false);
       }
     },
-    [scheduleTokenRefresh]
+    [startSessionExpiryTimer]
   );
 
   const logout = useCallback(async () => {
-    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    if (expiryTimerRef.current) {
+      clearTimeout(expiryTimerRef.current);
+      expiryTimerRef.current = null;
+    }
     await apiLogout();
     setUser(null);
     setAccessTokenState(null);
@@ -68,7 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     return () => {
-      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+      if (expiryTimerRef.current) clearTimeout(expiryTimerRef.current);
     };
   }, []);
 

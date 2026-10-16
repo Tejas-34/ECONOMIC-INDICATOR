@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
@@ -27,7 +27,7 @@ class AuthUser(BaseModel):
     username: str = Field(..., description="Username.")
     email: Optional[str] = Field(None, description="Email address.")
     name: Optional[str] = Field("Lead Macro Analyst", description="Display name.")
-    role: str = Field("viewer", description="User role ('viewer' or 'admin').")
+    role: Literal["viewer", "admin"] = Field("viewer", description="User role ('viewer' or 'admin').")
 
 
 class LoginResponse(BaseModel):

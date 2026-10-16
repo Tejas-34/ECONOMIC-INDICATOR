@@ -1,0 +1,1186 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Economic Indicator Dashboard API",
+    "description": "FastAPI backend serving macroeconomic indicators and live market index quotes.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health Check",
+        "description": "Public healthcheck endpoint reporting service mode, db status, scheduler state, and job ages (I6).",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Health Check Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Authenticate analyst and issue 60-minute JWT Bearer token",
+        "operationId": "login_api_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginCredentials"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Get authenticated analyst profile",
+        "operationId": "get_me_api_auth_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthUser"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/auth/stream-ticket": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Acquire a single-use 30-second ticket for SSE ticker connection",
+        "operationId": "acquire_stream_ticket_api_auth_stream_ticket_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreamTicketResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Analyst sign-out cleanup",
+        "operationId": "logout_api_auth_logout_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/refresh/{job}": {
+      "post": {
+        "tags": [
+          "Admin Operations"
+        ],
+        "summary": "On-demand trigger for data collection jobs (admin only)",
+        "description": "Admin-only on-demand data refresh route.",
+        "operationId": "trigger_job_refresh_api_admin_refresh__job__post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "macro",
+                "ticker",
+                "seeds"
+              ],
+              "type": "string",
+              "title": "Job"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Trigger Job Refresh Api Admin Refresh  Job  Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/indicators/{indicator_slug}": {
+      "get": {
+        "tags": [
+          "Indicators"
+        ],
+        "summary": "Get individual macroeconomic indicator panel data",
+        "operationId": "get_indicator_api_indicators__indicator_slug__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "indicator_slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Indicator Slug"
+            }
+          },
+          {
+            "name": "if-none-match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "If-None-Match"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardIndicatorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard": {
+      "get": {
+        "tags": [
+          "Indicators"
+        ],
+        "summary": "Get consolidated dashboard with all six indicator panels",
+        "operationId": "get_dashboard_api_dashboard_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "if-none-match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "If-None-Match"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ticker": {
+      "get": {
+        "tags": [
+          "Ticker"
+        ],
+        "summary": "Get current market index quotes snapshot",
+        "operationId": "get_ticker_snapshot_api_ticker_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TickerSnapshotPayload"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/stream/ticker": {
+      "get": {
+        "tags": [
+          "Ticker"
+        ],
+        "summary": "Connect to Server-Sent Events (SSE) live ticker stream",
+        "operationId": "stream_ticker_api_stream_ticker_get",
+        "parameters": [
+          {
+            "name": "ticket",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Single-use stream ticket",
+              "title": "Ticket"
+            },
+            "description": "Single-use stream ticket"
+          },
+          {
+            "name": "Last-Event-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Last-Event-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "Root",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AuthUser": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique user identifier."
+          },
+          "username": {
+            "type": "string",
+            "title": "Username",
+            "description": "Username."
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email",
+            "description": "Email address."
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Display name.",
+            "default": "Lead Macro Analyst"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "viewer",
+              "admin"
+            ],
+            "title": "Role",
+            "description": "User role ('viewer' or 'admin').",
+            "default": "viewer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "username"
+        ],
+        "title": "AuthUser"
+      },
+      "DashboardResponse": {
+        "properties": {
+          "indicators": {
+            "items": {
+              "$ref": "#/components/schemas/StandardIndicatorEnvelope"
+            },
+            "type": "array",
+            "title": "Indicators",
+            "description": "All indicator panels."
+          },
+          "as_of": {
+            "type": "string",
+            "title": "As Of",
+            "description": "Effective dashboard as-of timestamp."
+          },
+          "fetched_at": {
+            "type": "string",
+            "title": "Fetched At",
+            "description": "ISO 8601 fetch timestamp."
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "indicators",
+          "as_of",
+          "fetched_at"
+        ],
+        "title": "DashboardResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LoginCredentials": {
+        "properties": {
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username",
+            "description": "Username or email."
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email",
+            "description": "Email alias for username."
+          },
+          "password": {
+            "type": "string",
+            "title": "Password",
+            "description": "Plaintext user password."
+          }
+        },
+        "type": "object",
+        "required": [
+          "password"
+        ],
+        "title": "LoginCredentials"
+      },
+      "LoginResponse": {
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/AuthUser",
+            "description": "Authenticated user profile."
+          },
+          "accessToken": {
+            "type": "string",
+            "title": "Accesstoken",
+            "description": "JWT Bearer access token."
+          },
+          "access_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Access Token",
+            "description": "OAuth2 alias for accessToken."
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "description": "Token category.",
+            "default": "bearer"
+          },
+          "expiresInSeconds": {
+            "type": "integer",
+            "title": "Expiresinseconds",
+            "description": "Token lifetime in seconds.",
+            "default": 3600
+          },
+          "expires_in_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires In Seconds",
+            "description": "Alias for expiresInSeconds.",
+            "default": 3600
+          }
+        },
+        "type": "object",
+        "required": [
+          "user",
+          "accessToken"
+        ],
+        "title": "LoginResponse"
+      },
+      "MarketIndexQuote": {
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "title": "Symbol",
+            "description": "Exchange symbol (e.g. SENSEX, NIFTY BANK, NIFTY IT)."
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Human-readable index name."
+          },
+          "last": {
+            "type": "number",
+            "title": "Last",
+            "description": "Last traded points value."
+          },
+          "change": {
+            "type": "number",
+            "title": "Change",
+            "description": "Absolute points change."
+          },
+          "pct_change": {
+            "type": "number",
+            "title": "Pct Change",
+            "description": "Percentage change."
+          },
+          "as_of": {
+            "type": "string",
+            "title": "As Of",
+            "description": "ISO timestamp or exchange timestamp string."
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source",
+            "description": "Origin source (NSE or external/BSE).",
+            "default": "NSE"
+          },
+          "market_status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "closed",
+              "stale"
+            ],
+            "title": "Market Status",
+            "description": "Market operating status based on trading hours.",
+            "default": "open"
+          },
+          "currentPrice": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currentprice",
+            "description": "Frontend alias for last."
+          },
+          "changePoints": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changepoints",
+            "description": "Frontend alias for change."
+          },
+          "changePercent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changepercent",
+            "description": "Frontend alias for pct_change."
+          },
+          "isPositive": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ispositive",
+            "description": "Frontend boolean indicating positive delta."
+          },
+          "updatedAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updatedat",
+            "description": "Frontend alias for as_of."
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "symbol",
+          "last",
+          "change",
+          "pct_change",
+          "as_of"
+        ],
+        "title": "MarketIndexQuote"
+      },
+      "SourceProvenance": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Authoritative publisher or agency name."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "nse",
+              "NSE",
+              "external",
+              "external-curated"
+            ],
+            "title": "Type",
+            "description": "Provenance category."
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url",
+            "description": "Documentation or source data URL.",
+            "default": ""
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "name",
+          "type"
+        ],
+        "title": "SourceProvenance"
+      },
+      "StandardIndicatorEnvelope": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Indicator slug ID."
+          },
+          "indicator": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Indicator",
+            "description": "Standard indicator identifier slug."
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "Panel title matching design specification."
+          },
+          "subtitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtitle",
+            "description": "Optional subtitle."
+          },
+          "source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceProvenance"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Source",
+            "description": "Authoritative data source."
+          },
+          "source_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Type",
+            "description": "Source provenance type (NSE or external)."
+          },
+          "as_of": {
+            "type": "string",
+            "title": "As Of",
+            "description": "Effective data as-of period or date."
+          },
+          "fetched_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fetched At",
+            "description": "ISO timestamp when fetched."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "stale",
+              "unavailable"
+            ],
+            "title": "Status",
+            "description": "Freshness lifecycle status.",
+            "default": "ok"
+          },
+          "values": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Values",
+            "description": "Dictionary of named stat tiles."
+          },
+          "tiles": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/StatTileMetric"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tiles",
+            "description": "List of stat tiles."
+          },
+          "series": {
+            "items": {},
+            "type": "array",
+            "title": "Series",
+            "description": "Array of chart series points."
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "title",
+          "source",
+          "as_of"
+        ],
+        "title": "StandardIndicatorEnvelope"
+      },
+      "StatTileMetric": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "Display label for the stat tile."
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Current stat value."
+          },
+          "formattedValue": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formattedvalue",
+            "description": "Pre-formatted value string for display."
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit",
+            "description": "Metric unit (e.g., %, US$ B, Rs lakh crore)."
+          },
+          "delta": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delta",
+            "description": "Numerical change/delta."
+          },
+          "change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change",
+            "description": "Alias for delta in percentage points (pp)."
+          },
+          "formattedDelta": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formatteddelta",
+            "description": "Pre-formatted delta text with direction/unit."
+          },
+          "deltaUnit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deltaunit",
+            "description": "Delta unit, defaults to 'pp'.",
+            "default": "pp"
+          },
+          "change_unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Unit",
+            "description": "Alias for deltaUnit.",
+            "default": "pp"
+          },
+          "deltaDirection": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "positive",
+                  "negative",
+                  "neutral"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deltadirection",
+            "description": "Visual indicator direction.",
+            "default": "neutral"
+          },
+          "sublabel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sublabel",
+            "description": "Optional secondary sublabel."
+          },
+          "iconKey": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iconkey",
+            "description": "Optional icon or artwork key."
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "label"
+        ],
+        "title": "StatTileMetric"
+      },
+      "StreamTicketResponse": {
+        "properties": {
+          "ticket": {
+            "type": "string",
+            "title": "Ticket",
+            "description": "Single-use cryptographically secure ticket for SSE streaming."
+          },
+          "expires_in_seconds": {
+            "type": "integer",
+            "title": "Expires In Seconds",
+            "description": "Ticket validity window.",
+            "default": 30
+          }
+        },
+        "type": "object",
+        "required": [
+          "ticket"
+        ],
+        "title": "StreamTicketResponse"
+      },
+      "TickerSnapshotPayload": {
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "Snapshot timestamp in ISO format."
+          },
+          "quotes": {
+            "items": {
+              "$ref": "#/components/schemas/MarketIndexQuote"
+            },
+            "type": "array",
+            "title": "Quotes",
+            "description": "Current list of tracked index quotes."
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "timestamp",
+          "quotes"
+        ],
+        "title": "TickerSnapshotPayload"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

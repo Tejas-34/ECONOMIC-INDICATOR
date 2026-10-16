@@ -1,6 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext, useSyncExternalStore } from 'react';
+import { ReactReduxContext } from 'react-redux';
 import { IndicatorResponse, PanelState } from '../api/types';
 import { fetchIndicator } from '../api/client';
+import {
+  fetchDashboardThunk,
+  fetchIndicatorThunk,
+  setIndicatorStateOverride,
+  IndicatorEntry,
+} from '../store/slices/indicatorsSlice';
+import { AppDispatch, RootState } from '../store';
 
 export interface UseIndicatorDataReturn<T = unknown> {
   data: IndicatorResponse<T> | null;
@@ -14,50 +22,111 @@ export function useIndicatorData<T = Record<string, unknown>>(
   indicatorId: string,
   initialStateOverride?: PanelState
 ): UseIndicatorDataReturn<T> {
-  const [data, setData] = useState<IndicatorResponse<T> | null>(null);
-  const [state, setState] = useState<PanelState>(initialStateOverride || 'loading');
-  const [error, setError] = useState<Error | null>(null);
+  const reduxContext = useContext(ReactReduxContext);
+  const store = reduxContext?.store;
 
-  const loadData = useCallback(async () => {
-    setState('loading');
-    setError(null);
+  // Local fallback state (used when outside Redux Provider)
+  const [localData, setLocalData] = useState<IndicatorResponse<T> | null>(null);
+  const [localState, setLocalState] = useState<PanelState>(initialStateOverride || 'loading');
+  const [localError, setLocalError] = useState<Error | null>(null);
+
+  // Redux subscriptions via useSyncExternalStore
+  const reduxEntry: IndicatorEntry | undefined = useSyncExternalStore(
+    store ? store.subscribe : () => () => {},
+    store ? () => (store.getState() as RootState).indicators.byIndicator[indicatorId] : () => undefined,
+    store ? () => (store.getState() as RootState).indicators.byIndicator[indicatorId] : () => undefined
+  );
+
+  // Fallback loadData for non-Redux test environments
+  const loadLocalData = useCallback(async () => {
+    setLocalState('loading');
+    setLocalError(null);
     try {
       const response = await fetchIndicator<IndicatorResponse<T>>(indicatorId);
-      setData(response);
+      setLocalData(response);
 
       if (initialStateOverride) {
-        setState(initialStateOverride);
+        setLocalState(initialStateOverride);
         return;
       }
 
-      // Map indicator status
       if (response.status === 'stale') {
-        setState('stale');
+        setLocalState('stale');
       } else if (response.status === 'unavailable') {
-        setState('unavailable');
-      } else if (
-        !response.series ||
-        (Array.isArray(response.series) && response.series.length === 0)
-      ) {
-        setState('empty');
+        setLocalState('unavailable');
+      } else if (!response.series || (Array.isArray(response.series) && response.series.length === 0)) {
+        setLocalState('empty');
       } else {
-        setState('ok');
+        setLocalState('ok');
       }
     } catch (err) {
-      setError(err instanceof Error ? err : new Error(String(err)));
-      setState('error');
+      setLocalError(err instanceof Error ? err : new Error(String(err)));
+      setLocalState('error');
     }
   }, [indicatorId, initialStateOverride]);
 
+  // Initial load
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (!store) {
+      loadLocalData();
+      return;
+    }
+
+    const dispatch = store.dispatch as AppDispatch;
+    const currentState = store.getState() as RootState;
+
+    if (!currentState.indicators.dashboardLastUpdated && !currentState.indicators.dashboardLoading) {
+      // First paint: trigger consolidated dashboard fetch
+      dispatch(fetchDashboardThunk());
+    } else if (currentState.indicators.dashboardLastUpdated && !currentState.indicators.byIndicator[indicatorId]?.data) {
+      // Individual panel fetch if missing from dashboard
+      dispatch(fetchIndicatorThunk(indicatorId));
+    }
+  }, [store, indicatorId, loadLocalData]);
+
+  // Isolated panel refetch
+  const refetch = useCallback(async () => {
+    if (!store) {
+      await loadLocalData();
+      return;
+    }
+    const dispatch = store.dispatch as AppDispatch;
+    await dispatch(fetchIndicatorThunk(indicatorId));
+  }, [store, indicatorId, loadLocalData]);
+
+  // 5-minute periodic refresh
+  useEffect(() => {
+    const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+    const interval = setInterval(() => {
+      refetch();
+    }, REFRESH_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [refetch]);
+
+  if (!store) {
+    return {
+      data: localData,
+      state: initialStateOverride || localState,
+      error: localError,
+      refetch,
+      setPanelState: setLocalState,
+    };
+  }
+
+  const effectiveData = (reduxEntry?.data as IndicatorResponse<T>) || null;
+  const effectiveState: PanelState = initialStateOverride || reduxEntry?.state || 'loading';
+  const effectiveError = reduxEntry?.error ? new Error(reduxEntry.error) : null;
+
+  const setPanelState = (newState: PanelState) => {
+    const dispatch = store.dispatch as AppDispatch;
+    dispatch(setIndicatorStateOverride({ indicatorId, panelState: newState }));
+  };
 
   return {
-    data,
-    state,
-    error,
-    refetch: loadData,
-    setPanelState: setState,
+    data: effectiveData,
+    state: effectiveState,
+    error: effectiveError,
+    refetch,
+    setPanelState,
   };
 }

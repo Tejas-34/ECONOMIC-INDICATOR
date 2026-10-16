@@ -2,13 +2,23 @@ import React from 'react';
 import { SourceType } from '../../api/types';
 import styles from './SourceFooter.module.css';
 
-interface SourceFooterProps {
+export interface SourceFooterProps {
   source: string;
   sourceType: SourceType;
   asOf: string;
+  isEstimate?: boolean;
 }
 
-export const SourceFooter: React.FC<SourceFooterProps> = ({ source, sourceType, asOf }) => {
+export const SourceFooter: React.FC<SourceFooterProps> = ({
+  source,
+  sourceType,
+  asOf,
+  isEstimate = false,
+}) => {
+  const isEstimated =
+    isEstimate ||
+    (asOf && (asOf.includes('RE') || asOf.includes('BE') || asOf.toLowerCase().includes('estimate')));
+
   return (
     <footer className={styles.footer} aria-label="Data provenance and reporting date">
       <div className={styles.sourceInfo}>
@@ -23,9 +33,15 @@ export const SourceFooter: React.FC<SourceFooterProps> = ({ source, sourceType, 
         )}
       </div>
       <div className={styles.asOfDate}>
+        {isEstimated && (
+          <span className={styles.estimateBadge} title="Budget / Revised Estimate">
+            Estimate
+          </span>
+        )}
         <span>As of: </span>
         <span>{asOf}</span>
       </div>
     </footer>
   );
 };
+

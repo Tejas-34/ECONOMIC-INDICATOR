@@ -61,3 +61,37 @@ def evaluate_market_status(
         return "closed"
 
     return "open"
+
+
+def compute_read_time_market_status(
+    as_of: Optional[datetime],
+    current_time: Optional[datetime] = None
+) -> str:
+    """Compute read-time market status (open, closed, stale) per Decision I5:
+
+    - not in market hours -> "closed" (CLOSED badge)
+    - open & fresh (age <= 40s during market hours) -> "open" (LIVE badge)
+    - holiday stall (> 15m without update during market hours) -> "closed"
+    - stale (> 40s without update during market hours) -> "stale" (STALE badge)
+    """
+    ist_now = current_time or get_current_ist_time()
+    if not is_market_hours(ist_now):
+        return "closed"
+
+    if as_of is None:
+        return "closed"
+
+    if as_of.tzinfo is None:
+        as_of_ist = as_of.replace(tzinfo=timezone.utc).astimezone(KOLKATA_TZ)
+    else:
+        as_of_ist = as_of.astimezone(KOLKATA_TZ)
+
+    age_sec = (ist_now - as_of_ist).total_seconds()
+
+    if age_sec > 900:  # 15 min stall during market hours -> holiday/feed stopped
+        return "closed"
+    if age_sec > 40:  # > 2x 20s interval -> STALE
+        return "stale"
+    return "open"
+
+

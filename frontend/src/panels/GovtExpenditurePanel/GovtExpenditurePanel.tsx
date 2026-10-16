@@ -97,6 +97,11 @@ export const GovtExpenditurePanel: React.FC<GovtExpenditurePanelProps> = ({
       source={data?.source || 'Ministry of Finance, Budget Division'}
       sourceType={data?.source_type || 'external'}
       asOf={data?.as_of || 'FY 2024-25 RE'}
+      isEstimate={Boolean(
+        data?.as_of?.includes('RE') ||
+        data?.as_of?.includes('BE') ||
+        (Array.isArray(data?.series) && data.series.some((s: any) => s?.estimate))
+      )}
       state={state}
       onRetry={refetch}
     >

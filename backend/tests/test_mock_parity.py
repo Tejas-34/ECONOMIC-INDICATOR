@@ -5,7 +5,7 @@ import pytest
 FRONTEND_MOCKS_DIR = Path(__file__).resolve().parent.parent.parent / "frontend" / "src" / "mocks"
 
 
-def test_indicator_mock_parity_against_frontend_fixtures(client):
+def test_indicator_mock_parity_against_frontend_fixtures(auth_client):
     """Verify backend DATA_MODE=mock responses have 100% parity with frontend mock fixtures."""
     mapping = {
         "gdp-growth": "gdpGrowth.json",
@@ -17,7 +17,7 @@ def test_indicator_mock_parity_against_frontend_fixtures(client):
     }
 
     for slug, fname in mapping.items():
-        resp = client.get(f"/api/indicators/{slug}")
+        resp = auth_client.get(f"/api/indicators/{slug}")
         assert resp.status_code == 200, f"Failed for {slug}"
         backend_data = resp.json()
 
@@ -37,8 +37,8 @@ def test_indicator_mock_parity_against_frontend_fixtures(client):
             assert set(backend_data["values"].keys()) == set(frontend_fixture["values"].keys())
 
 
-def test_ticker_mock_parity(client):
-    resp = client.get("/api/ticker")
+def test_ticker_mock_parity(auth_client):
+    resp = auth_client.get("/api/ticker")
     assert resp.status_code == 200
     data = resp.json()
 

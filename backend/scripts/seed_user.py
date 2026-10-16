@@ -11,12 +11,8 @@ from backend.app.security.passwords import hash_password
 
 def seed_evaluation_user(db_url: str | None = None) -> None:
     target_url = db_url or settings.DATABASE_URL
-    username = settings.EVAL_USERNAME
-    pw_hash = settings.EVAL_PASSWORD_HASH
-
-    # If the hash in settings looks like a plaintext password, hash it
-    if not pw_hash.startswith("$2"):
-        pw_hash = hash_password(pw_hash)
+    raw_password = os.environ.get("EVAL_PASSWORD") or settings.EVAL_PASSWORD
+    pw_hash = hash_password(raw_password)
 
     print(f"[SeedUser] Seeding user '{username}' into database...")
     try:

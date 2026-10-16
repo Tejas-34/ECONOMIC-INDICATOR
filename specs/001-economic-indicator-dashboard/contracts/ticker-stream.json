@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "TickerSnapshotPayload",
+  "title": "TickerStreamContracts",
   "type": "object",
   "required": ["timestamp", "quotes"],
   "properties": {
@@ -9,14 +9,27 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["symbol", "name", "last", "change", "pct_change", "as_of", "source", "market_status"],
+        "required": [
+          "symbol",
+          "currentPrice",
+          "changePoints",
+          "changePercent",
+          "isPositive",
+          "updatedAt",
+          "source",
+          "market_status"
+        ],
         "properties": {
-          "symbol": { "type": "string", "enum": ["SENSEX", "NIFTY BANK", "NIFTY IT"] },
+          "symbol": {
+            "type": "string",
+            "enum": ["NIFTY BANK", "NIFTY IT", "SENSEX"]
+          },
           "name": { "type": "string" },
-          "last": { "type": "number" },
-          "change": { "type": "number" },
-          "pct_change": { "type": "number" },
-          "as_of": { "type": "string", "format": "date-time" },
+          "currentPrice": { "type": "number" },
+          "changePoints": { "type": "number" },
+          "changePercent": { "type": "number" },
+          "isPositive": { "type": "boolean" },
+          "updatedAt": { "type": "string", "format": "date-time" },
           "source": { "type": "string" },
           "market_status": {
             "type": "string",

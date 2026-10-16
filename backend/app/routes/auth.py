@@ -10,6 +10,17 @@ from backend.app.security.rate_limit import limiter
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 
+_eval_hash: str | None = None
+
+
+def get_eval_hash() -> str:
+    global _eval_hash
+    if _eval_hash is None:
+        from backend.app.security.passwords import hash_password
+        _eval_hash = hash_password(settings.EVAL_PASSWORD)
+    return _eval_hash
+
+
 @router.post(
     "/login",
     response_model=LoginResponse,
@@ -27,14 +38,10 @@ async def login(
             detail="Username and password are required"
         )
 
-    # In mock mode, validate against eval user
+    # In mock mode, validate against eval user using password verification
     if settings.DATA_MODE == "mock":
-        # Check against evaluation credentials
         is_eval_user = (identity == settings.EVAL_USERNAME or identity == "analyst@adityabirla.com")
-        valid_eval_pw = (
-            credentials.password == "Analyst@2026" or
-            verify_password(credentials.password, settings.EVAL_PASSWORD_HASH)
-        )
+        valid_eval_pw = verify_password(credentials.password, get_eval_hash())
         if not (is_eval_user and valid_eval_pw):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

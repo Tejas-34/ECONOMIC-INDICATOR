@@ -32,9 +32,13 @@ class Settings(BaseSettings):
         default="analyst@adityabirla.com",
         description="Default username for evaluation and testing."
     )
-    EVAL_PASSWORD_HASH: str = Field(
-        default="$2b$12$e6mO7jJ6g5lWkY8g2k.yquMhT6UfO6b5HjCgV4s9R2E1k3m8t2Y1e",
-        description="Bcrypt hash of default analyst password ('Analyst@2026')."
+    ALLOW_INSECURE_DEFAULTS: bool = Field(
+        default=False,
+        description="Permit startup with default or insecure secrets for local development only."
+    )
+    EVAL_PASSWORD: str = Field(
+        default="Analyst@2026",
+        description="Plaintext analyst password for seeding from env."
     )
 
     # CORS
@@ -65,4 +69,40 @@ class Settings(BaseSettings):
     )
 
 
+DEFAULT_INSECURE_JWT_SECRET = "c2VjdXJlX2p3dF9zZWNyZXRfa2V5X2Zvcl9lY29ub21pY19pbmRpY2F0b3JfZGFzaGJvYXJkXzIwMjY="
+DEFAULT_INSECURE_EVAL_PASSWORD = "Analyst@2026"
+DEFAULT_INSECURE_DB_SUBSTRINGS = ["postgres:postgres@", "postgres_secure_password_2026@"]
+
+
+def validate_startup_secrets(s: Settings) -> None:
+    """Enforce startup guard in live data mode (I9)."""
+    if s.DATA_MODE != "live":
+        return
+
+    if s.ALLOW_INSECURE_DEFAULTS:
+        print("[Startup Guard] WARNING: ALLOW_INSECURE_DEFAULTS is enabled. Insecure defaults permitted for development.")
+        return
+
+    errors = []
+    if not s.JWT_SECRET or s.JWT_SECRET == DEFAULT_INSECURE_JWT_SECRET or len(s.JWT_SECRET) < 32:
+        errors.append(
+            "Insecure or default JWT_SECRET detected. Must be at least 32 characters and not the committed default."
+        )
+
+    if not s.EVAL_PASSWORD or s.EVAL_PASSWORD == DEFAULT_INSECURE_EVAL_PASSWORD:
+        errors.append(
+            "Default EVAL_PASSWORD ('Analyst@2026') detected. Set a custom EVAL_PASSWORD in .env."
+        )
+
+    if any(sub in s.DATABASE_URL for sub in DEFAULT_INSECURE_DB_SUBSTRINGS):
+        errors.append(
+            "Insecure default password detected in DATABASE_URL. Set a custom password in .env."
+        )
+
+    if errors:
+        msg = "[Startup Guard] FATAL: Refusing to start in live mode with insecure defaults:\n" + "\n".join(f" - {e}" for e in errors)
+        raise RuntimeError(msg)
+
+
 settings = Settings()
+

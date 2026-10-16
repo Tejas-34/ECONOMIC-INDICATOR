@@ -86,12 +86,14 @@ export const LoginPage: React.FC = () => {
           </button>
         </form>
 
-        <div className={styles.demoHelper}>
-          <p>Demo analyst credentials:</p>
-          <button type="button" className={styles.demoBtn} onClick={handleFillDemo}>
-            Fill analyst@adityabirla.com / Analyst@2026
-          </button>
-        </div>
+        {import.meta.env.DEV && (
+          <div className={styles.demoHelper}>
+            <p>Demo analyst credentials:</p>
+            <button type="button" className={styles.demoBtn} onClick={handleFillDemo}>
+              Fill analyst@adityabirla.com / Analyst@2026
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

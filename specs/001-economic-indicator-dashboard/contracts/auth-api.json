@@ -10,22 +10,24 @@
         "password": { "type": "string" }
       }
     },
+    "AuthUser": {
+      "type": "object",
+      "required": ["id", "username", "role"],
+      "properties": {
+        "id": { "type": "string" },
+        "username": { "type": "string" },
+        "email": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["viewer", "admin"] }
+      }
+    },
     "LoginResponse": {
       "type": "object",
-      "required": ["user", "access_token", "token_type", "expires_in_seconds"],
+      "required": ["user", "accessToken", "expiresInSeconds"],
       "properties": {
-        "user": {
-          "type": "object",
-          "required": ["id", "username", "role"],
-          "properties": {
-            "id": { "type": "integer" },
-            "username": { "type": "string" },
-            "role": { "type": "string", "enum": ["viewer", "admin"] }
-          }
-        },
-        "access_token": { "type": "string" },
-        "token_type": { "type": "string", "const": "bearer" },
-        "expires_in_seconds": { "type": "integer", "const": 3600 }
+        "user": { "$ref": "#/definitions/AuthUser" },
+        "accessToken": { "type": "string" },
+        "expiresInSeconds": { "type": "integer", "const": 3600 }
       }
     },
     "StreamTicketResponse": {

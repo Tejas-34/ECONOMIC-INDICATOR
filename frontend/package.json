@@ -9,10 +9,11 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:visual": "playwright test",
+    "test:visual": "VITE_USE_MOCKS=true playwright test",
     "lint": "eslint . --max-warnings 0",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\"",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css}\""
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
+    "gen:api": "openapi-typescript ../backend/openapi.json -o src/api/schema.d.ts"
   },
   "dependencies": {
     "@fontsource/manrope": "^5.0.20",
@@ -37,6 +38,7 @@
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.11",
     "jsdom": "^25.0.0",
+    "openapi-typescript": "^7.13.0",
     "prettier": "^3.3.3",
     "typescript": "^5.5.4",
     "typescript-eslint": "^8.5.0",

@@ -2,102 +2,133 @@
 
 A pixel-perfect, high-performance macroeconomic terminal built to reproduce the authoritative design specifications of `design/reference.png` at **1214 x 2159 CSS pixels**.
 
-The application delivers an immediate visual readout of India's macroeconomic figures across six analytical panels, a live market index ticker, strict data provenance tracking, multiple state resilience modes (loading, stale, empty, error, unavailable), and in-memory JWT authentication.
-
-### Full-Stack Architecture
-- **Frontend** (`frontend/`): React 18, Redux Toolkit, Apache ECharts, Vite, Selawik / Manrope typography.
-- **Backend** (`backend/`): FastAPI (async), PostgreSQL 16 (psycopg3 connection pooling with raw parameterized SQL), APScheduler, SSE live quote streaming with 50-event ring buffer replay.
-- **Data Modes**: Controlled via `DATA_MODE=mock|live`.
+The application delivers an immediate visual readout of India's macroeconomic figures across six analytical panels, a live market index ticker via Server-Sent Events (SSE), strict data provenance tracking with estimate markers, multiple resilience states (loading, stale, empty, error, unavailable), and secure in-memory JWT authentication.
 
 ---
 
-## 🚀 Quickstart & Local Setup
+## 🏛️ Full-Stack Architecture
 
-### Prerequisites
-- **Node.js** >= 18.x
-- **npm** >= 9.x
+- **Frontend** (`frontend/`): React 18, Redux Toolkit, Apache ECharts, Vite, Selawik / Manrope typography.
+- **Backend** (`backend/`): FastAPI (async), PostgreSQL 16 (psycopg connection pooling with raw parameterized SQL), APScheduler, SSE live quote streaming with monotonic IDs and 50-event ring buffer replay.
+- **Reverse Proxy** (`backend/Caddyfile`): Caddy 2 with unbuffered SSE streaming (`flush_interval -1`) and real client IP forwarding.
+- **Operational Modes**: Controlled via `DATA_MODE=live|mock` and `VITE_USE_MOCKS=false|true`.
 
-### Installation
+---
+
+## ⚙️ Environment Variables & Configuration
+
+Configuration is managed via `.env` in the root repository. A template is provided in `.env.example`:
+
+| Variable | Mode / Context | Default Value | Description |
+| :--- | :--- | :--- | :--- |
+| `DATA_MODE` | Backend | `live` | `live` connects to PostgreSQL and collectors; `mock` serves offline fixtures. |
+| `POSTGRES_USER` | Backend / DB | `postgres` | Database username. |
+| `POSTGRES_PASSWORD` | Backend / DB | *(required in live)* | Database user password (no default permitted in live mode). |
+| `DATABASE_URL` | Backend | *(constructed)* | Full PostgreSQL connection string with psycopg driver. |
+| `JWT_SECRET` | Backend | *(required in live)* | Minimum 32-character secret key used to sign and verify HS256 JWT tokens. |
+| `JWT_ALGORITHM` | Backend | `HS256` | JWT signing algorithm. |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Backend | `60` | Lifespan of Bearer access tokens before session expiration. |
+| `STREAM_TICKET_EXPIRE_SECONDS`| Backend | `30` | Lifespan of single-use ticket for `/api/stream/ticker`. |
+| `EVAL_USERNAME` | Backend | `analyst@adityabirla.com` | Lead Macro Analyst username. |
+| `EVAL_PASSWORD` | Backend | *(required in live)* | Plaintext password hashed at runtime via `scripts/seed_user.py`. |
+| `ALLOW_INSECURE_DEFAULTS` | Backend | `false` | When `false`, backend refuses to start in live mode with default or weak secrets. Set to `true` strictly in dev. |
+| `FRONTEND_ORIGIN` | Backend | `http://localhost:5173` | Allowed CORS origin for browser clients. |
+| `VITE_USE_MOCKS` | Frontend | `false` | When `false`, connects to the backend API; when `true`, dynamically imports local mock fixtures. |
+| `VITE_API_BASE_URL` | Frontend | `/api` | Base API route prefix (supports absolute origin or `/api`). |
+
+---
+
+## 🚀 Running the Application
+
+### Option 1: Docker Compose (Recommended for Production & E2E)
 ```bash
-npm install
+# 1. Create your local .env from the template
+cp .env.example .env
+
+# 2. Launch PostgreSQL, FastAPI backend, and Caddy
+docker compose up --build
+```
+- Frontend & Reverse Proxy: [http://localhost](http://localhost) (or [http://localhost:5173](http://localhost:5173) in dev)
+- Backend API Direct: [http://localhost:8000/api](http://localhost:8000/api)
+- Health Check: [http://localhost:8000/health](http://localhost:8000/health)
+
+### Option 2: Local Development
+
+#### 1. Backend Setup
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# Run migrations and seed the evaluation analyst user
+alembic upgrade head
+EVAL_PASSWORD=YourSecurePassword@2026! python scripts/seed_user.py
+
+# Start the FastAPI server
+DATA_MODE=live ALLOW_INSECURE_DEFAULTS=true uvicorn backend.app.main:app --port 8000 --reload
 ```
 
-### Run Locally (Mock Mode)
+#### 2. Frontend Setup
 ```bash
+cd frontend
+npm install
+
+# Start Vite development server
 npm run dev
 ```
-Open [http://localhost:5173](http://localhost:5173) in your browser.
-
-### Demo Analyst Sign-In
-- **Email**: `analyst@adityabirla.com`
-- **Password**: `Analyst@2026`
-*(Or click the "Fill analyst@adityabirla.com / Analyst@2026" quick-fill button on the sign-in screen)*
 
 ---
 
-## ⚙️ Environment Configuration
+## 📈 Live Market Ticker & Streaming Protocol
 
-Configuration is managed via `.env` in the project root:
+The live ticker at the top of the terminal provides real-time market quotes (SENSEX, NIFTY 50, INR/USD):
 
-| Variable | Default Value | Description |
-| :--- | :--- | :--- |
-| `VITE_USE_MOCKS` | `true` | When `true`, all indicator and ticker requests are served by the local mock engine. Set to `false` for live backend integration. |
-| `VITE_API_BASE_URL` | `/api` | Base URL of the backend API service (e.g., `https://api.macro-analytics.adityabirla.com`). |
-
-### Switching Between Mock and Production Mode
-To point the frontend to a production API, update `.env`:
-```env
-VITE_USE_MOCKS=false
-VITE_API_BASE_URL=https://api.macro-analytics.adityabirla.com
-```
-**No code changes are required**; all API calls are abstracted through `src/api/client.ts`.
+1. **Initial Snapshot**: On component mount, the client performs `GET /api/ticker` to render quotes instantly without waiting for a streaming cycle.
+2. **Single-Use Ticket Handshake**: The client requests a 30-second ticket via `POST /api/auth/stream-ticket` and connects EventSource directly to `${origin}/api/stream/ticker?ticket=...`. Missing, expired, or reused tickets are strictly rejected with HTTP 403.
+3. **Snapshot Broadcast**: The backend publishes a single named `"snapshot"` event per ingestion cycle containing all updated quotes, accompanied by monotonic sequence IDs, retry hints, and 15-second heartbeat comments (`: ping\n\n`).
+4. **Ring-Buffer Replay**: On reconnection with `Last-Event-ID`, the server replays missed events from a 50-event ring buffer.
+5. **Backoff & Polling Fallback**: Reconnects with exponential backoff (1s to 30s) and jitter. After 3 consecutive stream failures, the client initiates fallback polling (`GET /api/ticker` every 10s) while SSE continues retrying in the background.
+6. **Read-Time Market Status**:
+   - `LIVE`: Trading hours (09:15–15:30 IST, Mon–Fri) and latest quote fresh (<= 40s).
+   - `STALE`: Trading hours and quote older than 40s, or SSE disconnected > 60s.
+   - `CLOSED`: Outside market hours, weekends, or trading stall > 15m (holiday). Hovering over the badge displays the exact last updated timestamp.
 
 ---
 
-## 🧪 Testing & Validation
+## 📊 Analytical Panels & Stale-While-Revalidate
 
-### Run Unit & Component Tests
+- **First Paint Consolidation**: On initial load, the dashboard queries `GET /api/dashboard` (ETag / HTTP 304 cached) to populate all six panels in a single request.
+- **5-Minute Isolated Panel Refresh**: Every 5 minutes, each panel independently refreshes its data (`fetchIndicatorThunk`).
+- **Stale-While-Revalidate**: If an individual panel refresh fails (e.g., 500 error or network timeout), the panel **never blanks out**; it retains its last good data and marks its state as `stale`. One failing panel never degrades or resets the other five panels.
+- **Data Provenance & SourceFooters**: Every panel displays its authoritative data source (`MoSPI`, `IMF`, `Ministry of Finance`), a `Non-NSE` badge for external feeds, the reporting period date, and an `Estimate` marker (e.g. for Revised and Budget estimates in Government Expenditure).
+
+---
+
+## 🔐 Security & Authorization
+
+- **Mandatory Bearer Authentication**: Every `/api/*` endpoint (except `POST /api/auth/login` and `/health`) requires a valid Bearer token (`get_current_user`).
+- **Global 401 Handler**: Any 401 response from the API immediately clears in-memory credentials and redirects to `/login?session_expired=true`.
+- **60-Minute Session Timer**: Access tokens expire after 60 minutes. A client-side timer logs the user out upon expiration; no insecure refresh tokens are used.
+- **Startup Guard**: In live mode (`DATA_MODE=live`), the server will immediately terminate at boot if default secrets or weak credentials are detected, unless `ALLOW_INSECURE_DEFAULTS=true` is set for local testing.
+- **Real Client IP Rate Limiting**: Behind Caddy reverse proxy, rate limiting keys on the real client IP extracted from `X-Forwarded-For`.
+- **Zero Mock Leakage**: Dynamic mock imports ensure that mock data files and tokens are completely stripped from production bundles (`VITE_USE_MOCKS=false npm run build`).
+
+---
+
+## 🧪 Testing Suite
+
 ```bash
-npm test
+# Backend pytest suite (mock mode)
+DATA_MODE=mock ./backend/.venv/bin/pytest backend/tests/ -v
+
+# Frontend unit and component tests (Vitest)
+npm --prefix frontend test
+
+# Visual regression & Playwright E2E tests (Mock evaluation)
+npm --prefix frontend run test:visual
+
+# OpenAPI schema drift verification
+npm --prefix frontend run gen:api
+git diff --exit-code frontend/src/api/schema.d.ts
 ```
-
-### Run Visual Regression Tests (Playwright)
-```bash
-npm run test:visual
-```
-
-### Run Build & Bundle Check
-```bash
-npm run build
-```
-
----
-
-## 📐 Architecture & Layout Specifications
-
-- **Canvas Viewport**: Fixed at `1214px` width and minimum `2159px` height.
-- **Grid Layout**: 2 columns x 3 rows with exact `582px` card width and `544px` card height, `24px` horizontal/vertical gap, and `13px` lateral padding (`582 + 24 + 582 + 26 = 1214px`). Zero horizontal scrollbars (`CLS = 0`).
-- **Live Ticker**: 49px height with a red `LIVE` badge, hardware-accelerated continuous CSS marquee, green/red color coding, and automatic pause on pointer hover. Connected via Server-Sent Events (SSE) with automatic exponential backoff reconnect and a 5-second polling fallback.
-- **Tree-Shaken Charts**: Powered by Apache ECharts (`echarts/core`) registering only `BarChart`, `LineChart`, `GridComponent`, `TooltipComponent`, `LegendComponent`, `MarkPointComponent`, and `CanvasRenderer`. ECharts is split into a separate vendor chunk (`vendor-echarts.js`), keeping the initial application bundle lightweight (~48 kB).
-
----
-
-## 🎨 Design Decisions & Ambiguity Resolutions
-
-1. **Canvas Viewport vs Figma Frame Width**:
-   - The Figma export file specifies a frame width of `1248px`, while the prompt specifies an evaluation viewport of `1214 x 2159 CSS px`.
-   - **Resolution**: The grid columns maintain the full `582px` card width and `24px` gap, with `13px` margins on each side (`582 + 24 + 582 + 26 = 1214px`), guaranteeing that the view fits within `1214px` with zero horizontal scrollbar or clipped typography.
-
-2. **Panel 4 (GST Tax Collection) Legend Labels**:
-   - In `design/reference.png`, Panel 4 displays legend items labeled `Imports` and `Trade Balance` (a copy-paste artifact in the original Figma design).
-   - **Resolution**: Per the prompt instructions ("blue bars plus a yellow line, legend as in the design"), the legend explicitly displays `Imports` and `Trade Balance` while correctly binding to the GST collection bar series and monthly average trendline series.
-
-3. **Macro Delta Colors**:
-   - Financial tickers strictly show positive in green and negative in red. In macroeconomic indicators (such as GDP Growth and Inflation deltas), the reference image displays green upward triangles even alongside negative percentage point deltas (e.g. `▲ -0.2pp` and `▲ -0.81pp`).
-   - **Resolution**: The dashboard matches the reference image styling for indicator tiles while preserving standard green/red quote conventions in the live ticker bar.
-
-4. **Missing Values & Zero-Invention Rule**:
-   - When a dataset contains null or unpopulated values, the number is strictly formatted as an em-dash (`"—"`). The application never fabricates zeros or interpolates missing data.
-
-5. **In-Memory JWT & Session Expiry**:
-   - Access tokens are retained strictly in memory (React context/closures) rather than `localStorage` to eliminate XSS token leakage. An automatic background timer refreshes tokens prior to expiration, and unauthorized responses (HTTP 401) immediately redirect to `/login?session_expired=true`.

@@ -21,6 +21,9 @@ export default defineConfig({
     setupFiles: './src/setupTests.ts',
     css: true,
     exclude: ['**/node_modules/**', '**/dist/**', 'tests/visual/**'],
+    env: {
+      VITE_USE_MOCKS: 'true',
+    },
   },
   server: {
     port: 5173,
