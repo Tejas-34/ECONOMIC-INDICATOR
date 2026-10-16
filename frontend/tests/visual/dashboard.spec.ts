@@ -43,19 +43,11 @@ test.describe('Economic Indicator Dashboard Visual & Layout Evaluation', () => {
     await expect(ticker.locator('text=SENSEX').first()).toBeVisible();
   });
 
-  test('displays only Sign Out button and signs out user to login page', async ({ page }) => {
-    // Verify simulation buttons are not present
+  test('does not display dev simulation buttons or floating controls', async ({ page }) => {
+    // Verify simulation buttons and floating controls are not present
     await expect(page.locator('button:has-text("NORMAL")')).toHaveCount(0);
     await expect(page.locator('button:has-text("LOADING")')).toHaveCount(0);
     await expect(page.locator('button:has-text("STALE")')).toHaveCount(0);
-
-    // Verify Sign Out button is visible and functional
-    const signOutBtn = page.locator('button:has-text("Sign Out")');
-    await expect(signOutBtn).toBeVisible();
-    await signOutBtn.click();
-
-    // Verify redirect to login
-    await expect(page).toHaveURL(/.*\/login/);
-    await expect(page.locator('button[type="submit"]')).toBeVisible();
+    await expect(page.locator('button:has-text("Sign Out")')).toHaveCount(0);
   });
 });

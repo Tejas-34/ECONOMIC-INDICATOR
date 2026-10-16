@@ -61,6 +61,10 @@ class Settings(BaseSettings):
     BSE_SENSEX_URL: str = Field(default="https://api.bseindia.com/BseIndiaAPI/api/SensexGraphData/w", description="BSE Sensex endpoint.")
     WORLD_BANK_BASE_URL: str = Field(default="https://api.worldbank.org/v2", description="World Bank API base URL.")
     IMF_DATAMAPPER_BASE_URL: str = Field(default="https://www.imf.org/external/datamapper/api/v1", description="IMF DataMapper base URL.")
+    DATA_GOV_GST_URL: str = Field(
+        default="https://api.data.gov.in/resource/a49bb4e6-662a-4cd1-83b7-6add74c1b984?api-key=579b464db66ec23bdd000001d42d21bfb519463160b3664bff8100fc&format=json",
+        description="data.gov.in GST Tax Collection endpoint."
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env",

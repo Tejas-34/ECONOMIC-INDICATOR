@@ -161,3 +161,106 @@ def test_trade_balance_presenter_structure():
     assert len(series) == 3
     assert series[-1]["tradeBalance"] == -1.9
 
+
+def test_debt_to_gdp_presenter_imf_data():
+    from backend.app.presenters.debt_to_gdp import present_debt_to_gdp
+
+    by_series = {
+        "india": [
+            {"period": "2021", "value": 85.5},
+            {"period": "2022", "value": 84.4},
+            {"period": "2023", "value": 84.7},
+            {"period": "2024", "value": 84.8},
+            {"period": "2025", "value": 84.3},
+        ],
+        "usa": [
+            {"period": "2021", "value": 125.0},
+            {"period": "2022", "value": 119.2},
+            {"period": "2023", "value": 120.0},
+            {"period": "2024", "value": 122.3},
+            {"period": "2025", "value": 124.4},
+        ],
+    }
+    obs_rows = by_series["india"] + by_series["usa"]
+    values, series = present_debt_to_gdp(by_series, obs_rows)
+
+    # India FY25 tile
+    ind_tile = values["indiaFy25"]
+    assert ind_tile.value == 84.3
+    assert ind_tile.formattedValue == "84.3%"
+    assert ind_tile.delta == -0.5
+    assert ind_tile.formattedDelta == "-0.5pp"
+    assert ind_tile.deltaDirection == "negative"
+
+    # Ind vs US difference tile
+    us_tile = values["indVsUs"]
+    assert us_tile.value == -40.1
+    assert us_tile.formattedValue == "-40.1%"
+    assert us_tile.delta == -2.6
+    assert us_tile.formattedDelta == "-2.6pp"
+    assert us_tile.deltaDirection == "negative"
+
+    # Series validation (2021–2025)
+    assert len(series) == 5
+    assert [s["date"] for s in series] == ["2021", "2022", "2023", "2024", "2025"]
+    assert [s["ratio"] for s in series] == [85.5, 84.4, 84.7, 84.8, 84.3]
+    assert series[-1]["isHighlighted"] is True
+    assert series[-1]["highlightLabel"] == "84.3%"
+
+
+def test_gst_collection_presenter_data_gov():
+    from backend.app.presenters.gst_collection import present_gst_collection
+
+    by_series = {
+        "domestic": [
+            {"period": "2021", "value": 8.66},
+            {"period": "2022", "value": 10.98},
+            {"period": "2023", "value": 13.25},
+            {"period": "2024", "value": 15.23},
+            {"period": "2025", "value": 12.37},
+        ],
+        "imports": [
+            {"period": "2021", "value": 2.71},
+            {"period": "2022", "value": 3.86},
+            {"period": "2023", "value": 4.83},
+            {"period": "2024", "value": 4.95},
+            {"period": "2025", "value": 3.96},
+        ],
+        "gross_collection": [
+            {"period": "2021", "value": 11.37},
+            {"period": "2022", "value": 14.83},
+            {"period": "2023", "value": 18.08},
+            {"period": "2024", "value": 20.18},
+            {"period": "2025", "value": 16.34},
+        ],
+        "monthly_average": [
+            {"period": "2021", "value": 0.95},
+            {"period": "2022", "value": 1.24},
+            {"period": "2023", "value": 1.51},
+            {"period": "2024", "value": 1.68},
+            {"period": "2025", "value": 1.63},
+        ],
+    }
+    obs_rows = by_series["domestic"] + by_series["imports"] + by_series["gross_collection"]
+    values, series = present_gst_collection(by_series, obs_rows)
+
+    # Collections tile
+    gro_tile = values["collections"]
+    assert gro_tile.label == "GST Collections"
+    assert gro_tile.value == 16.34
+    assert gro_tile.formattedValue == "₹16.34L Cr"
+
+    # Monthly Average tile
+    avg_tile = values["monthlyAverage"]
+    assert avg_tile.label == "Monthly Average"
+    assert avg_tile.value == 1.63
+    assert avg_tile.formattedValue == "₹1.63L Cr"
+
+    # Series validation
+    assert len(series) == 5
+    assert [s["year"] for s in series] == ["2021", "2022", "2023", "2024", "2025"]
+    assert [s["collectionRate"] for s in series] == [8.66, 10.98, 13.25, 15.23, 12.37]
+    assert [s["averageRate"] for s in series] == [2.71, 3.86, 4.83, 4.95, 3.96]
+    assert series[0]["highlightLabel"] == "₹2.71L Cr"
+
+

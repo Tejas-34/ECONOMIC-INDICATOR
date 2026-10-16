@@ -27,17 +27,33 @@ class BSECollector(BaseCollector):
                 data = resp.json()
                 meta = data.get("chart", {}).get("result", [{}])[0].get("meta", {})
                 last_price = meta.get("regularMarketPrice")
-                prev_close = meta.get("chartPreviousClose") or meta.get("previousClose")
+                pct_change = meta.get("regularMarketChangePercent")
+                if pct_change is None:
+                    pct_change = meta.get("fulldayChangePercent")
 
-                if last_price is not None and prev_close is not None:
-                    change = round(float(last_price - prev_close), 2)
-                    pct_change = round((change / prev_close) * 100, 2)
+                change = meta.get("fulldayChange")
+                if change is None:
+                    change = meta.get("regularMarketChange")
+
+                if last_price is not None:
+                    if pct_change is not None and change is not None:
+                        change_val = round(float(change), 2)
+                        pct_change_val = round(float(pct_change), 2)
+                    else:
+                        prev_close = meta.get("chartPreviousClose") or meta.get("previousClose")
+                        if prev_close is not None:
+                            change_val = round(float(last_price - prev_close), 2)
+                            pct_change_val = round((change_val / prev_close) * 100, 2)
+                        else:
+                            change_val = 0.0
+                            pct_change_val = 0.0
+
                     return {
                         "symbol": "SENSEX",
                         "name": "BSE SENSEX",
                         "last": round(float(last_price), 2),
-                        "change": change,
-                        "pct_change": pct_change,
+                        "change": change_val,
+                        "pct_change": pct_change_val,
                         "source": "BSE (via Yahoo Finance)",
                         "source_id": "bse",
                         "as_of": datetime.now(timezone.utc)

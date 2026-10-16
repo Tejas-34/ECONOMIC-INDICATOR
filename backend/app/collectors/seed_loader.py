@@ -31,7 +31,8 @@ async def load_seed_files_if_changed() -> Dict[str, int]:
     # Ensure source records exist
     source_records = [
         ("seed-budget", "Union Budget Expenditure Document", "external-curated", "https://www.indiabudget.gov.in", "Curated Central Government Revenue, Capital, and Total Expenditure"),
-        ("seed-gst", "Ministry of Finance GST Portal", "external-curated", "https://www.gst.gov.in", "Monthly and annual gross GST revenue collections")
+        ("seed-gst", "data.gov.in (Rajya Sabha)", "external", "https://data.gov.in", "Monthly and annual gross GST revenue collections"),
+        ("data-gov-in", "data.gov.in (Rajya Sabha)", "external", "https://data.gov.in", "Gross GST Collection on all Supplies (Domestic + Imports)")
     ]
     for src in source_records:
         await execute_write("""
@@ -115,17 +116,43 @@ async def load_seed_files_if_changed() -> Dict[str, int]:
                     fy = row["fiscal_year"].strip()
                     as_of_dt = date(int(fy), 3, 31)
 
+                    dom = float(row.get("domestic_lakh_cr", 0.0))
+                    imp = float(row.get("imports_lakh_cr", 0.0))
+                    gro = float(row.get("gross_collection_lakh_cr", 0.0))
+                    avg = float(row.get("monthly_average_lakh_cr", 0.0))
+                    yoy = float(row.get("yoy_growth_pct", 0.0))
+
                     rows_to_insert.append((
-                        "gst", "yoy_growth", fy,
-                        float(row["yoy_growth_pct"]), "%", "actual", "seed-gst", as_of_dt
+                        "gst", "domestic", fy,
+                        dom, "Rs lakh crore", "actual", "data-gov-in", as_of_dt
                     ))
                     rows_to_insert.append((
-                        "gst", "monthly_average", fy,
-                        float(row["monthly_average_lakh_cr"]), "Rs lakh crore", "actual", "seed-gst", as_of_dt
+                        "gst", "domestic_collection", fy,
+                        dom, "Rs lakh crore", "actual", "data-gov-in", as_of_dt
+                    ))
+                    rows_to_insert.append((
+                        "gst", "imports", fy,
+                        imp, "Rs lakh crore", "actual", "data-gov-in", as_of_dt
+                    ))
+                    rows_to_insert.append((
+                        "gst", "imports_collection", fy,
+                        imp, "Rs lakh crore", "actual", "data-gov-in", as_of_dt
                     ))
                     rows_to_insert.append((
                         "gst", "gross_collection", fy,
-                        float(row["gross_collection_lakh_cr"]), "Rs lakh crore", "actual", "seed-gst", as_of_dt
+                        gro, "Rs lakh crore", "actual", "data-gov-in", as_of_dt
+                    ))
+                    rows_to_insert.append((
+                        "gst", "total_collection", fy,
+                        gro, "Rs lakh crore", "actual", "data-gov-in", as_of_dt
+                    ))
+                    rows_to_insert.append((
+                        "gst", "monthly_average", fy,
+                        avg, "Rs lakh crore", "actual", "data-gov-in", as_of_dt
+                    ))
+                    rows_to_insert.append((
+                        "gst", "yoy_growth", fy,
+                        yoy, "%", "actual", "data-gov-in", as_of_dt
                     ))
 
             if rows_to_insert:

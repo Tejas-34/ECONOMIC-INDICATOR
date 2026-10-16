@@ -71,9 +71,9 @@ export const DebtToGdpPanel: React.FC<DebtToGdpPanelProps> = ({ initialStateOver
       id="panel-debt-to-gdp"
       title={data?.title || 'Debt to GDP Ratio'}
       subtitle={data?.subtitle || '(IND)'}
-      source={data?.source || 'Reserve Bank of India (RBI)'}
+      source={data?.source || 'International Monetary Fund (IMF)'}
       sourceType={data?.source_type || 'external'}
-      asOf={data?.as_of || '22 Aug 2025'}
+      asOf={data?.as_of || '2025'}
       state={state}
       onRetry={refetch}
     >

@@ -105,12 +105,17 @@ export const indicatorsSlice = createSlice({
             mappedState = 'empty';
           }
 
-          state.byIndicator[item.id] = {
+          const entry = {
             data: item,
             state: mappedState,
             lastUpdated: new Date().toISOString(),
             error: undefined,
           };
+
+          state.byIndicator[item.id] = entry;
+          if (item.id === 'trade') state.byIndicator['trade-balance'] = entry;
+          if (item.id === 'gst') state.byIndicator['gst-collection'] = entry;
+          if (item.id === 'government-expenditure') state.byIndicator['govt-expenditure'] = entry;
         }
       })
       .addCase(fetchDashboardThunk.rejected, (state, action) => {
@@ -159,12 +164,17 @@ export const indicatorsSlice = createSlice({
           mappedState = 'empty';
         }
 
-        state.byIndicator[indicatorId] = {
+        const entry = {
           data: payload,
           state: mappedState,
           lastUpdated: new Date().toISOString(),
           error: undefined,
         };
+
+        state.byIndicator[indicatorId] = entry;
+        if (indicatorId === 'trade') state.byIndicator['trade-balance'] = entry;
+        if (indicatorId === 'gst') state.byIndicator['gst-collection'] = entry;
+        if (indicatorId === 'government-expenditure') state.byIndicator['govt-expenditure'] = entry;
       })
       .addCase(fetchIndicatorThunk.rejected, (state, action) => {
         const id = action.meta.arg;

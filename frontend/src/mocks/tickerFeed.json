@@ -3,9 +3,9 @@
   "quotes": [
     {
       "symbol": "SENSEX",
-      "currentPrice": 73158.24,
-      "changePoints": 305.10,
-      "changePercent": 0.42,
+      "currentPrice": 74729.27,
+      "changePoints": 413.66,
+      "changePercent": 0.56,
       "isPositive": true,
       "updatedAt": "2026-10-15T16:40:00.000Z"
     },
@@ -27,9 +27,9 @@
     },
     {
       "symbol": "SENSEX",
-      "currentPrice": 73158.24,
-      "changePoints": 305.10,
-      "changePercent": 0.42,
+      "currentPrice": 74729.27,
+      "changePoints": 413.66,
+      "changePercent": 0.56,
       "isPositive": true,
       "updatedAt": "2026-10-15T16:40:00.000Z"
     },

@@ -1,38 +1,38 @@
 {
   "id": "gst-collection",
   "title": "GST Tax Collection",
-  "subtitle": "(YOY%)",
-  "source": "Goods and Services Tax Network (GSTN)",
+  "subtitle": "(₹ Lakh Cr)",
+  "source": "data.gov.in (Rajya Sabha)",
   "source_type": "external",
-  "as_of": "July 2025",
+  "as_of": "2024-25",
   "status": "ok",
   "values": {
     "collections": {
       "label": "GST Collections",
-      "value": 3.82,
-      "formattedValue": "3.82%",
-      "delta": -0.81,
-      "formattedDelta": "-0.81pp",
-      "deltaUnit": "pp",
-      "deltaDirection": "negative",
+      "value": 16.34,
+      "formattedValue": "₹16.34L Cr",
+      "delta": 11.65,
+      "formattedDelta": "+11.6%",
+      "deltaUnit": "%",
+      "deltaDirection": "positive",
       "iconKey": "gst"
     },
     "monthlyAverage": {
       "label": "Monthly Average",
-      "value": 1.97,
-      "formattedValue": "1.97",
-      "delta": -0.81,
-      "formattedDelta": "-0.81pp",
-      "deltaUnit": "pp",
-      "deltaDirection": "negative",
+      "value": 1.63,
+      "formattedValue": "₹1.63L Cr",
+      "delta": 0.17,
+      "formattedDelta": "+11.6%",
+      "deltaUnit": "%",
+      "deltaDirection": "positive",
       "iconKey": "coins"
     }
   },
   "series": [
-    { "year": "2021", "collectionRate": 8.7, "averageRate": 2.8, "highlightLabel": "2.8%" },
-    { "year": "2022", "collectionRate": 6.6, "averageRate": 2.8, "highlightLabel": "2.8%" },
-    { "year": "2023", "collectionRate": 8.7, "averageRate": 3.6, "highlightLabel": "3.6%" },
-    { "year": "2024", "collectionRate": 8.7, "averageRate": 3.6, "highlightLabel": "3.6%" },
-    { "year": "2025", "collectionRate": 6.8, "averageRate": 3.1, "highlightLabel": "3.1%" }
+    { "year": "2021", "collectionRate": 8.66, "averageRate": 2.71, "domestic": 8.66, "imports": 2.71, "totalCollection": 11.37, "highlightLabel": "₹2.71L Cr" },
+    { "year": "2022", "collectionRate": 10.98, "averageRate": 3.86, "domestic": 10.98, "imports": 3.86, "totalCollection": 14.83, "highlightLabel": "₹3.86L Cr" },
+    { "year": "2023", "collectionRate": 13.25, "averageRate": 4.83, "domestic": 13.25, "imports": 4.83, "totalCollection": 18.08, "highlightLabel": "₹4.83L Cr" },
+    { "year": "2024", "collectionRate": 15.23, "averageRate": 4.95, "domestic": 15.23, "imports": 4.95, "totalCollection": 20.18, "highlightLabel": "₹4.95L Cr" },
+    { "year": "2025", "collectionRate": 12.37, "averageRate": 3.96, "domestic": 12.37, "imports": 3.96, "totalCollection": 16.34, "highlightLabel": "₹3.96L Cr" }
   ]
 }

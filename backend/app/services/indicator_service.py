@@ -68,7 +68,7 @@ PANEL_TITLES = {
     "gdp-growth": ("GDP Growth - India vs World", "(YOY%)"),
     "debt-to-gdp": ("Debt to GDP Ratio", "(IND)"),
     "trade": ("Imports, Exports & Trade Balance", None),
-    "gst": ("GST Tax Collection", "(YOY%)"),
+    "gst": ("GST Tax Collection", "(₹ Lakh Cr)"),
     "inflation": ("Inflation", "(IND)"),
     "government-expenditure": ("Government Expenditure", None),
 }
@@ -79,10 +79,20 @@ async def assemble_indicator(slug: str) -> StandardIndicatorEnvelope:
     canonical_slug = SLUG_ALIASES.get(slug, slug)
 
     # 1. Fetch source info
+    src_target = (
+        "worldbank" if canonical_slug in ("gdp-growth", "trade", "inflation")
+        else "imf" if canonical_slug == "debt-to-gdp"
+        else "seed-budget" if canonical_slug == "government-expenditure"
+        else "data-gov-in"
+    )
     source_row = await fetch_one(
         "SELECT id, name, type, url FROM sources WHERE id = %s LIMIT 1;",
-        ("worldbank" if canonical_slug in ("gdp-growth", "trade", "inflation") else ("imf" if canonical_slug == "debt-to-gdp" else "seed-budget" if canonical_slug == "government-expenditure" else "seed-gst"),)
+        (src_target,)
     )
+    if not source_row and canonical_slug == "gst":
+        source_row = await fetch_one(
+            "SELECT id, name, type, url FROM sources WHERE id = 'seed-gst' LIMIT 1;"
+        )
     source_prov = SourceProvenance(
         name=source_row["name"] if source_row else "Authoritative Statistical Agency",
         type=source_row["type"] if source_row else "external",
@@ -193,7 +203,7 @@ async def get_dashboard_live(
     cache_key = "dashboard_live"
     cached = get_cached_macro(cache_key)
     if cached is None:
-        slugs = ["gdp-growth", "debt-to-gdp", "trade", "gst", "inflation", "government-expenditure"]
+        slugs = ["gdp-growth", "debt-to-gdp", "trade-balance", "gst-collection", "inflation", "govt-expenditure"]
         envelopes = [await assemble_indicator(s) for s in slugs]
         cached = DashboardResponse(
             indicators=envelopes,

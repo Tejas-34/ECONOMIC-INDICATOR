@@ -29,7 +29,7 @@
     }
   },
   "series": [
-    { "year": "2021", "indiaRate": 8.7, "worldRate": 6.3 },
+    { "year": "2021", "indiaRate": 10.7, "worldRate": 6.3 },
     { "year": "2022", "indiaRate": 6.3, "worldRate": 4.5 },
     { "year": "2023", "indiaRate": 8.7, "worldRate": 4.5 },
     { "year": "2024", "indiaRate": 8.7, "worldRate": 6.3 },

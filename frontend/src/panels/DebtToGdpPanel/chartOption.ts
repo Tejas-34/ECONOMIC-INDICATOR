@@ -56,8 +56,6 @@ export function buildDebtChartOption(series: DebtToGdpSeries): echarts.EChartsCo
         fontWeight: 600,
         fontFamily: 'Segoe UI, Selawik, system-ui, -apple-system, sans-serif',
         margin: 12,
-        formatter: (val: string) =>
-          ['25 Jul', '1 Aug', '8 Aug', '15 Aug', '22 Aug'].includes(val) ? val : '',
       },
       splitLine: {
         show: false,
@@ -81,7 +79,12 @@ export function buildDebtChartOption(series: DebtToGdpSeries): echarts.EChartsCo
         margin: 10,
       },
       splitLine: {
-        show: false,
+        show: true,
+        lineStyle: {
+          color: 'rgba(255, 255, 255, 0.08)',
+          width: 1,
+          type: 'solid',
+        },
       },
     },
     series: [
@@ -89,7 +92,14 @@ export function buildDebtChartOption(series: DebtToGdpSeries): echarts.EChartsCo
         name: 'Debt to GDP Ratio',
         type: 'line',
         smooth: 0.25,
-        showSymbol: false,
+        showSymbol: true,
+        symbol: 'circle',
+        symbolSize: 6,
+        itemStyle: {
+          color: '#00D2FF',
+          borderColor: '#FFFFFF',
+          borderWidth: 1.5,
+        },
         lineStyle: {
           color: '#00D2FF',
           width: 2.5,
@@ -109,23 +119,19 @@ export function buildDebtChartOption(series: DebtToGdpSeries): echarts.EChartsCo
             width: 1,
             type: 'solid',
           },
-          data: [
-            { xAxis: '25 Jul' },
-            { xAxis: '1 Aug' },
-            { xAxis: '8 Aug' },
-            { xAxis: '15 Aug' },
-            { xAxis: '22 Aug' },
-          ],
+          data: dates.map((d) => ({ xAxis: d })),
           label: { show: false },
         },
         markPoint: {
           symbol: 'roundRect',
-          symbolSize: [48, 22],
+          symbolSize: [54, 24],
           itemStyle: {
-            color: 'rgba(30, 48, 72, 0.75)',
-            borderColor: 'rgba(255, 255, 255, 0.25)',
+            color: 'rgba(30, 48, 72, 0.85)',
+            borderColor: 'rgba(0, 210, 255, 0.45)',
             borderWidth: 1,
-            borderRadius: 11,
+            borderRadius: 12,
+            shadowColor: 'rgba(0, 0, 0, 0.4)',
+            shadowBlur: 6,
           },
           label: {
             show: true,

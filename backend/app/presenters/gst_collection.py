@@ -7,11 +7,13 @@ def present_gst_collection(
     by_series: Dict[str, List[Dict[str, Any]]],
     obs_rows: List[Dict[str, Any]]
 ) -> Tuple[Dict[str, StatTileMetric], List[Dict[str, Any]]]:
-    """Present GST Tax Collection indicator: Gross collection & monthly average in Rs lakh crore."""
-    gro_pts = by_series.get("gross_collection", [])
+    """Present GST Tax Collection indicator from data.gov.in: Gross collection, Domestic & Imports."""
+    gro_pts = by_series.get("gross_collection", []) or by_series.get("total_collection", [])
+    dom_pts = by_series.get("domestic", []) or by_series.get("domestic_collection", [])
+    imp_pts = by_series.get("imports", []) or by_series.get("imports_collection", [])
     avg_pts = by_series.get("monthly_average", [])
-    yoy_pts = by_series.get("yoy_growth", [])
 
+    # Latest total gross collection
     gro_latest = round(float(gro_pts[-1]["value"]), 2) if (gro_pts and gro_pts[-1]["value"] is not None) else None
     gro_p1 = round(float(gro_pts[-2]["value"]), 2) if (len(gro_pts) >= 2 and gro_pts[-2]["value"] is not None) else None
     gro_p2 = round(float(gro_pts[-3]["value"]), 2) if (len(gro_pts) >= 3 and gro_pts[-3]["value"] is not None) else None
@@ -25,7 +27,7 @@ def present_gst_collection(
     gro_tile = StatTileMetric(
         label="GST Collections",
         value=gro_latest,
-        formattedValue=f"{gro_latest}%" if gro_latest is not None else "—",
+        formattedValue=f"₹{gro_latest}L Cr" if gro_latest is not None else "—",
         unit="Rs lakh crore",
         delta=gro_delta,
         change=gro_delta,
@@ -39,7 +41,7 @@ def present_gst_collection(
     avg_tile = StatTileMetric(
         label="Monthly Average",
         value=avg_latest,
-        formattedValue=f"{avg_latest}" if avg_latest is not None else "—",
+        formattedValue=f"₹{avg_latest}L Cr" if avg_latest is not None else "—",
         unit="Rs lakh crore",
         delta=avg_delta,
         change=avg_delta,
@@ -55,15 +57,23 @@ def present_gst_collection(
     periods = sorted({r["period"] for r in obs_rows})
     series = []
     for p in periods:
-        c_val = next((round(float(x["value"]), 2) for x in yoy_pts if x["period"] == p and x["value"] is not None), None)
-        if c_val is None:
-            c_val = next((round(float(x["value"]), 2) for x in gro_pts if x["period"] == p and x["value"] is not None), None)
-        a_val = next((round(float(x["value"]), 2) for x in avg_pts if x["period"] == p and x["value"] is not None), None)
+        d_val = next((round(float(x["value"]), 2) for x in dom_pts if x["period"] == p and x["value"] is not None), None)
+        i_val = next((round(float(x["value"]), 2) for x in imp_pts if x["period"] == p and x["value"] is not None), None)
+        t_val = next((round(float(x["value"]), 2) for x in gro_pts if x["period"] == p and x["value"] is not None), None)
+
+        if d_val is None:
+            d_val = next((round(float(x["value"]), 2) for x in gro_pts if x["period"] == p and x["value"] is not None), None)
+        if i_val is None:
+            i_val = next((round(float(x["value"]), 2) for x in avg_pts if x["period"] == p and x["value"] is not None), None)
+
         series.append({
             "year": str(p),
-            "collectionRate": c_val,
-            "averageRate": a_val,
-            "highlightLabel": f"{a_val}%" if a_val is not None else None
+            "collectionRate": d_val,
+            "averageRate": i_val,
+            "domestic": d_val,
+            "imports": i_val,
+            "totalCollection": t_val,
+            "highlightLabel": f"₹{i_val}L Cr" if i_val is not None else None
         })
 
     return values, series

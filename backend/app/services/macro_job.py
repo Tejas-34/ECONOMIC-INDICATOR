@@ -1,6 +1,7 @@
 import asyncio
 from datetime import datetime, timezone
 from typing import Any, Dict
+from backend.app.collectors.data_gov import DataGovGSTCollector
 from backend.app.collectors.imf import IMFCollector
 from backend.app.collectors.seed_loader import load_seed_files_if_changed
 from backend.app.collectors.world_bank import WorldBankCollector
@@ -29,14 +30,16 @@ async def run_macro_collection_job() -> Dict[str, Any]:
         try:
             wb = WorldBankCollector()
             imf = IMFCollector()
+            gst_col = DataGovGSTCollector()
 
             # Run upstream collections
             gdp_rows = await wb.collect_gdp_growth()
             inflation_rows = await wb.collect_inflation()
             trade_rows = await wb.collect_trade()
             debt_rows = await imf.collect_debt_to_gdp()
+            gst_rows = await gst_col.collect_gst_collection()
 
-            all_rows = gdp_rows + inflation_rows + trade_rows + debt_rows
+            all_rows = gdp_rows + inflation_rows + trade_rows + debt_rows + gst_rows
 
             if all_rows:
                 upsert_sql = """

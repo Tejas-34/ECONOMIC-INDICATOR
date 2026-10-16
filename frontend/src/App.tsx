@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './auth/AuthContext';
+import { AuthProvider } from './auth/AuthContext';
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import { LoginPage } from './auth/LoginPage';
 import { Header } from './components/Header/Header';
@@ -10,8 +10,6 @@ import { isMockMode } from './api/client';
 import styles from './App.module.css';
 
 const DashboardView: React.FC = () => {
-  const { logout } = useAuth();
-
   return (
     <div className={styles.appCanvas}>
       {isMockMode() && (
@@ -46,13 +44,6 @@ const DashboardView: React.FC = () => {
 
       {/* 3. Six Analytical Panels in 2x3 Grid */}
       <DashboardGrid />
-
-      {/* Sign Out Button */}
-      <aside className={styles.floatingToolbar} aria-label="Analyst Controls">
-        <button type="button" className={styles.signOutBtn} onClick={logout}>
-          Sign Out
-        </button>
-      </aside>
     </div>
   );
 };

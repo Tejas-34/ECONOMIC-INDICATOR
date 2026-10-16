@@ -27,10 +27,6 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const handleFillDemo = () => {
-    setEmail('analyst@adityabirla.com');
-    setPassword('Analyst@2026');
-  };
 
   return (
     <div className={styles.loginContainer}>
@@ -86,14 +82,7 @@ export const LoginPage: React.FC = () => {
           </button>
         </form>
 
-        {import.meta.env.DEV && (
-          <div className={styles.demoHelper}>
-            <p>Demo analyst credentials:</p>
-            <button type="button" className={styles.demoBtn} onClick={handleFillDemo}>
-              Fill analyst@adityabirla.com / Analyst@2026
-            </button>
-          </div>
-        )}
+
       </div>
     </div>
   );

@@ -11,6 +11,7 @@ from backend.app.security.passwords import hash_password
 
 def seed_evaluation_user(db_url: str | None = None) -> None:
     target_url = db_url or settings.DATABASE_URL
+    username = settings.EVAL_USERNAME
     raw_password = os.environ.get("EVAL_PASSWORD") or settings.EVAL_PASSWORD
     pw_hash = hash_password(raw_password)
 

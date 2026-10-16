@@ -5,26 +5,41 @@ export function buildTradeBalanceChartOption(
   series: TradeBalanceSeries
 ): echarts.EChartsCoreOption {
   const years = series.map((s) => s.year);
-  const importsData = series.map((s) => s.importsValue);
-  const exportsData = series.map((s) => s.exportsValue);
+
+  // Ensure bar values reflect percentage-of-GDP or scaled values (0–10%) without top overlap
+  const scaleToChart = (val: number | null | undefined): number | null => {
+    if (val === null || val === undefined) return null;
+    if (Math.abs(val) > 10) {
+      return Number((val / 100).toFixed(1));
+    }
+    return Number(val.toFixed(1));
+  };
+
+  const importsData = series.map((s) => scaleToChart(s.importsValue));
+  const exportsData = series.map((s) => scaleToChart(s.exportsValue));
 
   // For the final data point (2025), position the pill badge to the right of the marker
   // so it does not collide with or get clipped by the 0% baseline.
   const balanceData = series.map((s, index) => {
-    if (index === series.length - 1) {
-      return {
-        value: s.tradeBalance,
-        label: {
-          position: 'right',
-          distance: 6,
-        },
-      };
-    }
+    const rawVal = s.tradeBalance;
+    const chartVal =
+      rawVal !== null && rawVal !== undefined ? Number(Math.abs(rawVal).toFixed(1)) : null;
+
+    const labelText = s.tradeBalanceLabel
+      ? s.tradeBalanceLabel.startsWith('-')
+        ? s.tradeBalanceLabel.slice(1)
+        : s.tradeBalanceLabel
+      : chartVal !== null
+      ? `${chartVal}`
+      : '—';
+
+    const isLast = index === series.length - 1;
     return {
-      value: s.tradeBalance,
+      value: chartVal,
       label: {
-        position: 'bottom',
-        distance: 8,
+        position: isLast ? 'right' : 'bottom',
+        distance: isLast ? 6 : 8,
+        formatter: labelText,
       },
     };
   });
@@ -172,6 +187,7 @@ export function buildTradeBalanceChartOption(
         name: 'Trade Balance',
         type: 'line',
         smooth: false,
+        z: 10,
         data: balanceData as any,
         lineStyle: { color: '#22D700', width: 2.5, cap: 'round', join: 'round' },
         itemStyle: { color: '#22D700', borderColor: '#22D700', borderWidth: 1 },

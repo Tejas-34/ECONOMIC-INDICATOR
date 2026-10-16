@@ -50,6 +50,12 @@
 .closedBadge {
   background-color: #475569 !important;
   border-color: #64748b !important;
+  justify-content: center !important;
+  padding: 0 14px !important;
+}
+
+.closedBadge::before {
+  display: none !important;
 }
 
 .staleBadge {

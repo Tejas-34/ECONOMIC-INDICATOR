@@ -25,7 +25,7 @@ const GstSummaryCard: React.FC<GstSummaryCardProps> = ({
   const displayValue =
     metric.value === null || metric.value === undefined
       ? '—'
-      : metric.formattedValue || `${metric.value}%`;
+      : metric.formattedValue || (typeof metric.value === 'number' ? `₹${metric.value}L Cr` : `${metric.value}`);
 
   const deltaText =
     metric.delta === null || metric.delta === undefined
@@ -91,10 +91,10 @@ export const GstCollectionPanel: React.FC<GstCollectionPanelProps> = ({
     <PanelShell
       id="panel-gst-collection"
       title={data?.title || 'GST Tax Collection'}
-      subtitle={data?.subtitle || '(YOY%)'}
-      source={data?.source || 'Goods and Services Tax Network (GSTN)'}
+      subtitle={data?.subtitle || '(₹ Lakh Cr)'}
+      source={data?.source || 'data.gov.in (Rajya Sabha)'}
       sourceType={data?.source_type || 'external'}
-      asOf={data?.as_of || 'July 2025'}
+      asOf={data?.as_of || '2024-25'}
       state={state}
       onRetry={refetch}
     >

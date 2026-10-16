@@ -3,10 +3,15 @@ services:
     image: postgres:16-alpine
     container_name: economic_indicators_db
     restart: unless-stopped
+    env_file:
+      - path: ../.env
+        required: false
+      - path: .env
+        required: false
     environment:
-      POSTGRES_DB: economic_indicators
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres_secure_password_2026
+      POSTGRES_DB: ${POSTGRES_DB:-economic_indicators}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     # NOTE: NO ports are published here! PostgreSQL is strictly unreachable from outside the Docker network.
     networks:
       - internal_network
@@ -20,20 +25,26 @@ services:
 
   backend:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
     container_name: economic_indicators_backend
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
+    env_file:
+      - path: ../.env
+        required: false
+      - path: .env
+        required: false
     environment:
-      DATA_MODE: live
-      DATABASE_URL: postgresql://postgres:postgres_secure_password_2026@db:5432/economic_indicators
-      JWT_SECRET: c2VjdXJlX2p3dF9zZWNyZXRfa2V5X2Zvcl9lY29ub21pY19pbmRpY2F0b3JfZGFzaGJvYXJkXzIwMjY=
-      EVAL_USERNAME: analyst@adityabirla.com
-      EVAL_PASSWORD_HASH: $2b$12$e6mO7jJ6g5lWkY8g2k.yquMhT6UfO6b5HjCgV4s9R2E1k3m8t2Y1e
-      FRONTEND_ORIGIN: http://localhost:5173
+      DATA_MODE: ${DATA_MODE:-live}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/economic_indicators}
+      JWT_SECRET: ${JWT_SECRET}
+      EVAL_USERNAME: ${EVAL_USERNAME:-analyst@adityabirla.com}
+      EVAL_PASSWORD: ${EVAL_PASSWORD}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
+      ALLOW_INSECURE_DEFAULTS: ${ALLOW_INSECURE_DEFAULTS:-false}
     ports:
       - "8000:8000"
     networks:

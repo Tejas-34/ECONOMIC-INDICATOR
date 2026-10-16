@@ -3,8 +3,8 @@ import { GstCollectionSeries } from '../../api/types';
 
 export function buildGstChartOption(series: GstCollectionSeries): echarts.EChartsCoreOption {
   const years = series.map((s) => s.year);
-  const collections = series.map((s) => s.collectionRate);
-  const averages = series.map((s) => s.averageRate);
+  const domesticSeries = series.map((s) => (s as any).domestic ?? s.collectionRate);
+  const importsSeries = series.map((s) => (s as any).imports ?? s.averageRate);
 
   return {
     animation: true,
@@ -17,14 +17,22 @@ export function buildGstChartOption(series: GstCollectionSeries): echarts.EChart
       borderWidth: 1,
       textStyle: { color: '#FFFFFF', fontSize: 13 },
       formatter: (params: any) => {
-        let content = `<div style="font-weight:600;margin-bottom:4px;">${params[0]?.name || ''}</div>`;
+        let content = `<div style="font-weight:600;margin-bottom:4px;">FY ${params[0]?.name || ''}</div>`;
+        let total = 0;
         params.forEach((p: any) => {
-          const color = p.seriesName === 'Imports' ? '#0FB8E6' : '#F4E15C';
+          const color = p.seriesName === 'Domestic' ? '#0FB8E6' : '#F4E15C';
+          const val = p.value !== null && p.value !== undefined ? Number(p.value) : null;
+          if (val !== null) total += val;
           content += `<div style="display:flex;align-items:center;gap:6px;margin:2px 0;">
             <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${color};"></span>
-            <span>${p.seriesName}: <b>${p.value !== null ? p.value + '%' : '—'}</b></span>
+            <span>${p.seriesName}: <b>${val !== null ? '₹' + val.toFixed(2) + 'L Cr' : '—'}</b></span>
           </div>`;
         });
+        if (total > 0) {
+          content += `<div style="display:flex;align-items:center;gap:6px;margin-top:4px;border-top:1px solid rgba(255,255,255,0.15);padding-top:4px;">
+            <span style="color:#A1B5D8;">Total GST:</span> <b>₹${total.toFixed(2)}L Cr</b>
+          </div>`;
+        }
         return content;
       },
     },
@@ -42,12 +50,12 @@ export function buildGstChartOption(series: GstCollectionSeries): echarts.EChart
         fontFamily: 'Segoe UI, Selawik, system-ui, -apple-system, sans-serif',
       },
       data: [
-        { name: 'Imports', icon: 'roundRect' },
-        { name: 'Trade Balance' },
+        { name: 'Domestic', icon: 'roundRect' },
+        { name: 'Imports' },
       ],
     },
     grid: {
-      left: 45,
+      left: 55,
       right: 20,
       top: 36,
       bottom: 24,
@@ -70,17 +78,17 @@ export function buildGstChartOption(series: GstCollectionSeries): echarts.EChart
     yAxis: {
       type: 'value',
       min: 0,
-      max: 10,
-      interval: 2,
+      max: 18,
+      interval: 3,
       axisLine: { show: false },
       axisTick: { show: false },
       axisLabel: {
         color: '#CCCCCC',
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: 600,
         fontFamily: 'Segoe UI, Selawik, system-ui, -apple-system, sans-serif',
-        formatter: '{value}%',
-        margin: 12,
+        formatter: '₹{value}L Cr',
+        margin: 8,
       },
       splitLine: {
         show: true,
@@ -89,10 +97,10 @@ export function buildGstChartOption(series: GstCollectionSeries): echarts.EChart
     },
     series: [
       {
-        name: 'Imports',
+        name: 'Domestic',
         type: 'bar',
         barWidth: 28,
-        data: collections,
+        data: domesticSeries,
         itemStyle: {
           borderRadius: [4, 4, 0, 0],
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
@@ -106,18 +114,18 @@ export function buildGstChartOption(series: GstCollectionSeries): echarts.EChart
           position: 'top',
           distance: 6,
           color: '#CCCCCC',
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: 600,
           fontFamily: 'Segoe UI, Selawik, system-ui, -apple-system, sans-serif',
           formatter: (params: any) =>
-            params.value !== null && params.value !== undefined ? `${params.value}%` : '',
+            params.value !== null && params.value !== undefined ? `₹${params.value}L` : '',
         },
       },
       {
-        name: 'Trade Balance',
+        name: 'Imports',
         type: 'line',
         smooth: false,
-        data: averages,
+        data: importsSeries,
         lineStyle: { color: '#F4E15C', width: 2.5, cap: 'round', join: 'round' },
         itemStyle: { color: '#F4E15C', borderColor: '#F4E15C', borderWidth: 1 },
         symbol: 'circle',
@@ -138,7 +146,7 @@ export function buildGstChartOption(series: GstCollectionSeries): echarts.EChart
           formatter: (params: any) => {
             const item = series[params.dataIndex];
             if (item?.highlightLabel) return item.highlightLabel;
-            if (params.value !== null && params.value !== undefined) return `${params.value}%`;
+            if (params.value !== null && params.value !== undefined) return `₹${params.value}L Cr`;
             return '—';
           },
         },

@@ -5,8 +5,18 @@ import styles from './Ticker.module.css';
 export const Ticker: React.FC = () => {
   const { quotes, marketStatus, lastUpdated } = useTickerStream();
 
-  // Create duplicate set for seamless continuous marquee loop
-  const displayQuotes = quotes.length > 0 ? [...quotes, ...quotes, ...quotes] : [];
+  // Create two identical contiguous halves for truly seamless infinite marquee loop
+  const displayQuotes = React.useMemo(() => {
+    if (quotes.length === 0) return [];
+    // Ensure base sequence exceeds the 1214px viewport before duplicating
+    const repeatCount = Math.max(2, Math.ceil(8 / quotes.length));
+    const base: typeof quotes = [];
+    for (let i = 0; i < repeatCount; i++) {
+      base.push(...quotes);
+    }
+    // Exactly two identical halves: translating -50% shifts by exactly one half seamlessly
+    return [...base, ...base];
+  }, [quotes]);
 
   return (
     <nav className={styles.tickerContainer} aria-label="Live Market Quotes Ticker">
@@ -23,16 +33,13 @@ export const Ticker: React.FC = () => {
           data-testid="ticker-status-badge"
         >
           <span className={styles.liveText}>{marketStatus}</span>
-          <span
-            className={`${styles.liveDot} ${
-              marketStatus === 'CLOSED'
-                ? styles.closedDot
-                : marketStatus === 'STALE'
-                ? styles.staleDot
-                : ''
-            }`}
-            aria-hidden="true"
-          />
+          {marketStatus === 'LIVE' && (
+            <span
+              className={styles.liveDot}
+              aria-hidden="true"
+              data-testid="ticker-live-dot"
+            />
+          )}
         </div>
         <div className={styles.divider} aria-hidden="true" />
       </div>

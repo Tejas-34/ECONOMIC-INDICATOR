@@ -1,6 +1,6 @@
-fiscal_year,period,gross_collection_lakh_cr,monthly_average_lakh_cr,yoy_growth_pct,source_url
-2021,FY2021-22,14.83,1.24,30.5,https://www.gst.gov.in
-2022,FY2022-23,18.10,1.51,22.0,https://www.gst.gov.in
-2023,FY2023-24,20.18,1.68,11.5,https://www.gst.gov.in
-2024,FY2024-25,22.08,1.84,9.4,https://www.gst.gov.in
-2025,FY2025-26,23.64,1.97,7.1,https://www.gst.gov.in
+fiscal_year,period,domestic_lakh_cr,imports_lakh_cr,gross_collection_lakh_cr,monthly_average_lakh_cr,yoy_growth_pct,source_url
+2021,2020-21,8.66,2.71,11.37,0.95,30.5,https://api.data.gov.in/resource/a49bb4e6-662a-4cd1-83b7-6add74c1b984
+2022,2021-22,10.98,3.86,14.83,1.24,30.5,https://api.data.gov.in/resource/a49bb4e6-662a-4cd1-83b7-6add74c1b984
+2023,2022-23,13.25,4.83,18.08,1.51,21.9,https://api.data.gov.in/resource/a49bb4e6-662a-4cd1-83b7-6add74c1b984
+2024,2023-24,15.23,4.95,20.18,1.68,11.6,https://api.data.gov.in/resource/a49bb4e6-662a-4cd1-83b7-6add74c1b984
+2025,2024-25,12.37,3.96,16.34,1.63,9.4,https://api.data.gov.in/resource/a49bb4e6-662a-4cd1-83b7-6add74c1b984
