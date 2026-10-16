@@ -53,14 +53,13 @@ def present_debt_to_gdp(
     values = {"indiaFy25": ind_tile, "indVsUs": gap_tile}
 
     series = []
-    for i, pt in enumerate(ind_pts):
+    for pt in ind_pts:
         p = pt["period"]
         val = round(float(pt["value"]), 2) if pt.get("value") is not None else None
-        is_high = (i == len(ind_pts) - 1 or i == len(ind_pts) // 2)
         series.append({
             "date": str(p),
             "ratio": val,
-            "isHighlighted": is_high,
+            "isHighlighted": True,
             "highlightLabel": f"{val}%" if val is not None else None
         })
 

@@ -30,7 +30,8 @@ const GovtExpenditureSummaryCard: React.FC<GovtExpenditureSummaryCardProps> = ({
   const displayValue =
     metric.value === null || metric.value === undefined
       ? '—'
-      : metric.formattedValue || `${metric.value}%`;
+      : metric.formattedValue ||
+        (typeof metric.value === 'number' ? `₹${metric.value}L Cr` : `${metric.value}`);
 
   const deltaText =
     metric.delta === null || metric.delta === undefined
@@ -94,9 +95,10 @@ export const GovtExpenditurePanel: React.FC<GovtExpenditurePanelProps> = ({
     <PanelShell
       id="panel-govt-expenditure"
       title={data?.title || 'Government Expenditure'}
-      source={data?.source || 'Ministry of Finance, Budget Division'}
+      subtitle={data?.subtitle}
+      source={data?.source || 'Union Budget (Ministry of Finance)'}
       sourceType={data?.source_type || 'external'}
-      asOf={data?.as_of || 'FY 2024-25 RE'}
+      asOf={data?.as_of || 'FY 2025-26 RE'}
       isEstimate={Boolean(
         data?.as_of?.includes('RE') ||
         data?.as_of?.includes('BE') ||

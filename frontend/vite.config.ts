@@ -1,4 +1,3 @@
-/// <reference types="vitest" />
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -14,16 +13,6 @@ export default defineConfig({
       },
     },
     chunkSizeWarningLimit: 600,
-  },
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: './src/setupTests.ts',
-    css: true,
-    exclude: ['**/node_modules/**', '**/dist/**', 'tests/visual/**'],
-    env: {
-      VITE_USE_MOCKS: 'true',
-    },
   },
   server: {
     port: 5173,

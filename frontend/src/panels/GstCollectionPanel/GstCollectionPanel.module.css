@@ -54,7 +54,7 @@
   height: 100%;
   position: relative;
   z-index: 2;
-  max-width: 145px;
+  max-width: 165px;
 }
 
 .cardLabel {
@@ -68,12 +68,13 @@
 
 .cardValue {
   font-family: 'Segoe UI', 'Selawik', system-ui, -apple-system, sans-serif;
-  font-size: 32px;
+  font-size: 26px;
   font-weight: 600;
-  line-height: 38px;
+  line-height: 32px;
   color: #ffffff;
   letter-spacing: -0.5px;
   margin: 2px 0 2px 0;
+  white-space: nowrap;
 }
 
 .deltaPill {

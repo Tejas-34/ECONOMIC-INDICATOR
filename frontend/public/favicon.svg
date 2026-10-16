@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0E2347"/>
+      <stop offset="100%" stop-color="#050C1B"/>
+    </linearGradient>
+    <linearGradient id="barGrad1" x1="16.5" y1="36" x2="16.5" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0FB8E6"/>
+      <stop offset="100%" stop-color="#0046B7"/>
+    </linearGradient>
+    <linearGradient id="barGrad2" x1="27.5" y1="27" x2="27.5" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00D2FF"/>
+      <stop offset="100%" stop-color="#0066CC"/>
+    </linearGradient>
+    <linearGradient id="barGrad3" x1="38.5" y1="18" x2="38.5" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#45FF5B"/>
+      <stop offset="100%" stop-color="#0D9488"/>
+    </linearGradient>
+    <linearGradient id="lineGrad" x1="12" y1="40" x2="52" y2="13" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00D2FF"/>
+      <stop offset="100%" stop-color="#45FF5B"/>
+    </linearGradient>
+    <filter id="glow" x="42" y="4" width="20" height="20" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Container -->
+  <rect width="64" height="64" rx="14" fill="url(#bgGrad)"/>
+  <rect x="0.75" y="0.75" width="62.5" height="62.5" rx="13.25" stroke="#00D2FF" stroke-opacity="0.35" stroke-width="1.5"/>
+
+  <!-- Financial Chart Bars -->
+  <rect x="13" y="36" width="7" height="16" rx="2" fill="url(#barGrad1)"/>
+  <rect x="24" y="27" width="7" height="25" rx="2" fill="url(#barGrad2)"/>
+  <rect x="35" y="18" width="7" height="34" rx="2" fill="url(#barGrad3)"/>
+
+  <!-- Upward Trendline -->
+  <path d="M12 41 L23.5 32 L35 24 L51 13" stroke="url(#lineGrad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Peak Indicator Node with Glow -->
+  <circle cx="51" cy="13" r="3.5" fill="#45FF5B" filter="url(#glow)"/>
+  <circle cx="51" cy="13" r="1.5" fill="#FFFFFF"/>
+</svg>

@@ -5,9 +5,9 @@ export function buildDebtChartOption(series: DebtToGdpSeries): echarts.EChartsCo
   const dates = series.map((s) => s.date);
   const data = series.map((s) => s.ratio);
 
-  // MarkPoint data for pill badges at highlighted dates
+  // MarkPoint data for pill badges at all dates (similar to 2023 style for all years)
   const markPoints = series
-    .filter((s) => s.isHighlighted && s.ratio !== null)
+    .filter((s) => s.ratio !== null && s.ratio !== undefined)
     .map((s) => ({
       coord: [s.date, s.ratio],
       value: s.highlightLabel || `${s.ratio}%`,
@@ -34,7 +34,7 @@ export function buildDebtChartOption(series: DebtToGdpSeries): echarts.EChartsCo
     },
     grid: {
       left: 45,
-      right: 25,
+      right: 30,
       top: 36,
       bottom: 26,
       containLabel: false,

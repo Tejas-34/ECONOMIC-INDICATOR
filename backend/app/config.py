@@ -6,8 +6,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     # Operational Mode
     DATA_MODE: Literal["mock", "live"] = Field(
-        default="mock",
-        description="Runtime data mode: 'mock' serves static JSON fixtures with no DB writes; 'live' uses PostgreSQL and upstream collectors."
+        default="live",
+        description="Runtime data mode: 'live' uses PostgreSQL and upstream collectors."
     )
 
     # Database

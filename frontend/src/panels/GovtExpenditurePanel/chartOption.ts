@@ -9,15 +9,6 @@ export function buildGovtExpenditureChartOption(
   const revenueDisplay = series.map((s) => s.revenueExpenditure);
   const totalDisplay = series.map((s) => s.totalExpenditure);
 
-  // Proportioned heights for 0-10% visual grid faithfully matching design/Goverment Expend.png
-  // 2021: Cap 3.2% + Rev 1.5% = Total 4.7% (below 5%)
-  // 2022: Cap 3.6% + Rev 1.6% = Total 5.2% (just above 5%)
-  // 2023: Cap 3.7% + Rev 1.6% = Total 5.3% (just above 5%)
-  // 2024: Cap 4.9% + Rev 1.7% = Total 6.6% (above 6%, below 7%)
-  // 2025: Cap 6.0% + Rev 1.6% = Total 7.6% (just below 8%)
-  const visualCapital = [3.2, 3.6, 3.7, 4.9, 6.0];
-  const visualRevenue = [1.5, 1.6, 1.6, 1.7, 1.6];
-
   return {
     animation: true,
     animationDuration: 300,
@@ -31,9 +22,9 @@ export function buildGovtExpenditureChartOption(
       formatter: (params: any) => {
         const yearIdx = params[0]?.dataIndex ?? 0;
         const yearName = params[0]?.name || '';
-        const cap = capitalDisplay[yearIdx] ?? '—';
-        const rev = revenueDisplay[yearIdx] ?? '—';
-        const tot = totalDisplay[yearIdx] ?? '—';
+        const cap = capitalDisplay[yearIdx] != null ? `₹${capitalDisplay[yearIdx]}L Cr` : '—';
+        const rev = revenueDisplay[yearIdx] != null ? `₹${revenueDisplay[yearIdx]}L Cr` : '—';
+        const tot = totalDisplay[yearIdx] != null ? `₹${totalDisplay[yearIdx]}L Cr` : '—';
 
         return `<div style="font-weight:600;margin-bottom:4px;">${yearName}</div>
           <div style="display:flex;align-items:center;gap:6px;margin:2px 0;">
@@ -79,7 +70,7 @@ export function buildGovtExpenditureChartOption(
       ],
     },
     grid: {
-      left: 48,
+      left: 56,
       right: 25,
       top: 36,
       bottom: 26,
@@ -110,8 +101,8 @@ export function buildGovtExpenditureChartOption(
     yAxis: {
       type: 'value',
       min: 0,
-      max: 10,
-      interval: 2,
+      max: 60,
+      interval: 10,
       axisLine: {
         show: true,
         lineStyle: { color: '#5B5B5B', width: 1 },
@@ -119,11 +110,11 @@ export function buildGovtExpenditureChartOption(
       axisTick: { show: false },
       axisLabel: {
         color: '#CCCCCC',
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: 600,
         fontFamily: 'Segoe UI, Selawik, system-ui, -apple-system, sans-serif',
-        formatter: '{value}%',
-        margin: 10,
+        formatter: '₹{value}L Cr',
+        margin: 8,
       },
       splitLine: {
         show: true,
@@ -140,7 +131,7 @@ export function buildGovtExpenditureChartOption(
         type: 'bar',
         stack: 'expenditure',
         barWidth: 32,
-        data: visualCapital,
+        data: capitalDisplay,
         itemStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: '#FFB012' },
@@ -149,13 +140,15 @@ export function buildGovtExpenditureChartOption(
         },
         label: {
           show: true,
-          position: 'insideBottom',
-          distance: 8,
+          position: 'inside',
           color: '#FFFFFF',
-          fontSize: 14,
+          fontSize: 13,
           fontWeight: 600,
           fontFamily: 'Segoe UI, Selawik, system-ui, -apple-system, sans-serif',
-          formatter: (p: any) => `${capitalDisplay[p.dataIndex] ?? '23.2'}`,
+          formatter: (p: any) => {
+            const val = capitalDisplay[p.dataIndex];
+            return val != null ? `${val}` : '';
+          },
         },
       },
       {
@@ -163,7 +156,7 @@ export function buildGovtExpenditureChartOption(
         type: 'bar',
         stack: 'expenditure',
         barWidth: 32,
-        data: visualRevenue,
+        data: revenueDisplay,
         itemStyle: {
           borderRadius: [4, 4, 0, 0],
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
@@ -175,10 +168,13 @@ export function buildGovtExpenditureChartOption(
           show: true,
           position: 'inside',
           color: '#FFFFFF',
-          fontSize: 14,
+          fontSize: 13,
           fontWeight: 600,
           fontFamily: 'Segoe UI, Selawik, system-ui, -apple-system, sans-serif',
-          formatter: (p: any) => `${revenueDisplay[p.dataIndex] ?? '7.9'}`,
+          formatter: (p: any) => {
+            const val = revenueDisplay[p.dataIndex];
+            return val != null ? `${val}` : '';
+          },
         },
       },
       {
@@ -186,7 +182,7 @@ export function buildGovtExpenditureChartOption(
         type: 'bar',
         stack: 'expenditure',
         barWidth: 32,
-        data: [0, 0, 0, 0, 0],
+        data: series.map(() => 0),
         itemStyle: { color: 'transparent' },
         label: {
           show: true,
@@ -196,7 +192,10 @@ export function buildGovtExpenditureChartOption(
           fontSize: 14,
           fontWeight: 600,
           fontFamily: 'Segoe UI, Selawik, system-ui, -apple-system, sans-serif',
-          formatter: (p: any) => `${totalDisplay[p.dataIndex] ?? '31.2'}`,
+          formatter: (p: any) => {
+            const val = totalDisplay[p.dataIndex];
+            return val != null ? `${val}` : '';
+          },
         },
         tooltip: { show: false },
       },

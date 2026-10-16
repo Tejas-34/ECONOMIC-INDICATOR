@@ -8,9 +8,6 @@ export const setAuthToken = (token: string | null): void => {
 
 export const getAuthToken = (): string | null => inMemoryToken;
 
-export const isMockMode = (): boolean => {
-  return import.meta.env.VITE_USE_MOCKS === 'true';
-};
 
 export function normalizeApiBaseUrl(raw?: string): string {
   const url = (raw || '/api').trim();
@@ -183,109 +180,27 @@ export async function request<T = unknown>(
 }
 
 // -------------------------------------------------------------
-// Dynamic Mock Loaders (Tree-shaken out of production bundle)
-// -------------------------------------------------------------
-async function loadMockIndicator(id: string): Promise<unknown> {
-  switch (id) {
-    case 'gdp-growth':
-      return (await import('../mocks/gdpGrowth.json')).default;
-    case 'debt-to-gdp':
-      return (await import('../mocks/debtToGdp.json')).default;
-    case 'trade-balance':
-    case 'trade':
-      return (await import('../mocks/tradeBalance.json')).default;
-    case 'gst-collection':
-    case 'gst':
-      return (await import('../mocks/gstCollection.json')).default;
-    case 'inflation':
-      return (await import('../mocks/inflation.json')).default;
-    case 'govt-expenditure':
-    case 'government-expenditure':
-      return (await import('../mocks/govtExpenditure.json')).default;
-    default:
-      throw new ApiError(`Indicator '${id}' not found in mock fixtures`, 404);
-  }
-}
-
-async function loadMockTicker(): Promise<TickerStreamPayload> {
-  const mod = await import('../mocks/tickerFeed.json');
-  return mod.default as unknown as TickerStreamPayload;
-}
-
-// -------------------------------------------------------------
-// High-Level Domain API Methods
+// High-Level Domain API Methods (Strictly Live Endpoints)
 // -------------------------------------------------------------
 export async function fetchIndicator<T = unknown>(id: string): Promise<T> {
-  if (isMockMode()) {
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    return (await loadMockIndicator(id)) as T;
-  }
   return request<T>(`/indicators/${id}`);
 }
 
 export async function fetchDashboard<T = unknown>(): Promise<T> {
-  if (isMockMode()) {
-    await new Promise((resolve) => setTimeout(resolve, 60));
-    const slugs = [
-      'gdp-growth',
-      'debt-to-gdp',
-      'trade-balance',
-      'gst-collection',
-      'inflation',
-      'govt-expenditure',
-    ];
-    const indicators = await Promise.all(slugs.map((s) => loadMockIndicator(s)));
-    return {
-      indicators,
-      as_of: '2026',
-      fetched_at: new Date().toISOString(),
-    } as T;
-  }
   return request<T>('/dashboard');
 }
 
 export async function fetchLatestTickerQuotes(): Promise<TickerStreamPayload> {
-  if (isMockMode()) {
-    await new Promise((resolve) => setTimeout(resolve, 40));
-    return loadMockTicker();
-  }
   return request<TickerStreamPayload>('/ticker');
 }
 
 export async function fetchStreamTicket(): Promise<{ ticket: string; expires_in_seconds: number }> {
-  if (isMockMode()) {
-    return {
-      ticket: `mock_ticket_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-      expires_in_seconds: 30,
-    };
-  }
   return request<{ ticket: string; expires_in_seconds: number }>('/auth/stream-ticket', {
     method: 'POST',
   });
 }
 
 export async function apiLogin(credentials: LoginCredentials): Promise<LoginResponse> {
-  if (isMockMode()) {
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    const identity = credentials.username || credentials.email;
-    if (identity && credentials.password) {
-      const mockResponse: LoginResponse = {
-        user: {
-          id: 'usr_mock_001',
-          username: identity,
-          email: identity,
-          name: 'Lead Macro Analyst',
-          role: 'admin',
-        },
-        accessToken: 'mock_jwt_token_analyst_2026',
-        expiresInSeconds: 3600,
-      };
-      setAuthToken(mockResponse.accessToken);
-      return mockResponse;
-    }
-    throw new ApiError('Invalid email or password', 401);
-  }
-
   const data = await request<LoginResponse>('/auth/login', {
     method: 'POST',
     body: JSON.stringify(credentials),
@@ -297,11 +212,9 @@ export async function apiLogin(credentials: LoginCredentials): Promise<LoginResp
 export async function apiLogout(): Promise<void> {
   setAuthToken(null);
   clearEtagCache();
-  if (!isMockMode()) {
-    try {
-      await request('/auth/logout', { method: 'POST', retries: 0 });
-    } catch {
-      // Ignore network errors during sign-out cleanup
-    }
+  try {
+    await request('/auth/logout', { method: 'POST', retries: 0 });
+  } catch {
+    // Ignore network errors during sign-out cleanup
   }
 }

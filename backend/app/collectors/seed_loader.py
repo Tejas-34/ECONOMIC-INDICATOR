@@ -67,9 +67,10 @@ async def load_seed_files_if_changed() -> Dict[str, int]:
                         float(row["total_expenditure"]), "Rs lakh crore", basis, "seed-budget", as_of_dt
                     ))
                     # Capital expenditure
+                    capex_val = float(row.get("capital_expenditure") or row.get("effective_capex", 0.0))
                     rows_to_insert.append((
                         "government-expenditure", "capital", period,
-                        float(row["effective_capex"]), "Rs lakh crore", basis, "seed-budget", as_of_dt
+                        capex_val, "Rs lakh crore", basis, "seed-budget", as_of_dt
                     ))
                     # Revenue expenditure
                     rows_to_insert.append((
@@ -78,6 +79,10 @@ async def load_seed_files_if_changed() -> Dict[str, int]:
                     ))
 
             if rows_to_insert:
+                await execute_write(
+                    "DELETE FROM observations WHERE indicator = %s AND period LIKE %s;",
+                    ("government-expenditure", "FY%")
+                )
                 upsert_sql = """
                     INSERT INTO observations (indicator, series, period, value, unit, basis, source_id, as_of)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)

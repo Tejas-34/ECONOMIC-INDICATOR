@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { TickerQuote } from '../api/types';
-import { fetchLatestTickerQuotes, fetchStreamTicket, getApiOrigin, isMockMode } from '../api/client';
+import { fetchLatestTickerQuotes, fetchStreamTicket, getApiOrigin } from '../api/client';
 
 export type MarketBadgeStatus = 'LIVE' | 'CLOSED' | 'STALE';
 
@@ -188,16 +188,6 @@ export function useTickerStream(): UseTickerStreamReturn {
 
     // 1. Initial snapshot on mount (I4)
     fetchPoll();
-
-    if (isMockMode()) {
-      setIsConnected(true);
-      // In mock mode, update every 4 seconds with mock data
-      const mockInterval = window.setInterval(fetchPoll, 4000);
-      return () => {
-        isUnmountedRef.current = true;
-        clearInterval(mockInterval);
-      };
-    }
 
     // 2. Connect to SSE stream
     connectSSE();

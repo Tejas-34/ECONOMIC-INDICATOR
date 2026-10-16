@@ -8,8 +8,6 @@ from fastapi.responses import StreamingResponse
 from backend.app.schemas.ticker import MarketIndexQuote, TickerSnapshotPayload
 from backend.app.security.jwt import consume_stream_ticket
 
-FIXTURES_DIR = Path(__file__).resolve().parent.parent / "fixtures"
-
 # Monotonic event ID counter
 _current_event_id: int = 0
 
@@ -134,21 +132,4 @@ async def subscribe_client(
             "X-Accel-Buffering": "no",
         }
     )
-
-
-async def mock_event_generator() -> AsyncGenerator[str, None]:
-    """Generates periodic mock named 'snapshot' SSE events for ticker testing in DATA_MODE=mock."""
-    event_id = 0
-    filepath = FIXTURES_DIR / "tickerFeed.json"
-    with open(filepath, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    snapshot = TickerSnapshotPayload.model_validate(data)
-
-    while True:
-        event_id += 1
-        data_json = json.dumps(snapshot.model_dump())
-        yield f"id: {event_id}\nevent: snapshot\nretry: 5000\ndata: {data_json}\n\n"
-        await asyncio.sleep(5.0)
-        yield ": ping\n\n"
-        await asyncio.sleep(5.0)
 

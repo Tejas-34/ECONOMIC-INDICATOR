@@ -25,7 +25,7 @@ def present_govt_expenditure(
     tot_tile = StatTileMetric(
         label="Total Expenditure",
         value=tot_latest,
-        formattedValue=f"{tot_latest}%" if tot_latest is not None else "—",
+        formattedValue=f"₹{tot_latest:.2f}L Cr" if tot_latest is not None else "—",
         unit="Rs lakh crore",
         delta=tot_delta,
         change=tot_delta,
@@ -39,7 +39,7 @@ def present_govt_expenditure(
     cap_tile = StatTileMetric(
         label="Capital Expenditure",
         value=cap_latest,
-        formattedValue=f"{cap_latest}%" if cap_latest is not None else "—",
+        formattedValue=f"₹{cap_latest:.2f}L Cr" if cap_latest is not None else "—",
         unit="Rs lakh crore",
         delta=cap_delta,
         change=cap_delta,

@@ -125,7 +125,11 @@ async def assemble_indicator(slug: str) -> StandardIndicatorEnvelope:
 
     latest_fetched_at = max(r["fetched_at"].isoformat() for r in obs_rows if r.get("fetched_at"))
     overall_status = determine_status(latest_fetched_at)
-    latest_as_of = max(str(r["as_of"]) for r in obs_rows if r.get("as_of"))
+    latest_as_of = (
+        "FY 2025-26 RE"
+        if canonical_slug == "government-expenditure"
+        else max(str(r["as_of"]) for r in obs_rows if r.get("as_of"))
+    )
 
     tiles: List[StatTileMetric] = []
     values_dict: Dict[str, Any] = {}

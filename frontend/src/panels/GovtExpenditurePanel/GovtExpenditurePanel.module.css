@@ -75,12 +75,13 @@
     system-ui,
     -apple-system,
     sans-serif;
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 600;
-  line-height: 36px;
+  line-height: 34px;
   color: #ffffff;
   letter-spacing: -0.5px;
   margin: 0;
+  white-space: nowrap;
 }
 
 .deltaPill {
