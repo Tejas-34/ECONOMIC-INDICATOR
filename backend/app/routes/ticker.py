@@ -45,8 +45,12 @@ async def get_ticker_snapshot(response: Response) -> TickerSnapshotPayload:
     "/stream/ticker",
     summary="Connect to Server-Sent Events (SSE) live ticker stream"
 )
+@router.get(
+    "/ticker/stream",
+    include_in_schema=False
+)
 async def stream_ticker(
-    ticket: str = Query(..., description="Single-use stream ticket"),
+    ticket: str | None = Query(default=None, description="Single-use stream ticket"),
     last_event_id: str | None = Header(default=None, alias="Last-Event-ID")
 ):
     if settings.DATA_MODE == "mock":

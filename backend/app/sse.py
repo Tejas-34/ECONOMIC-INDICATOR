@@ -27,7 +27,15 @@ async def broadcast_quote(quote: MarketIndexQuote) -> None:
     global _current_event_id
     _current_event_id += 1
     event_id = _current_event_id
-    data_json = json.dumps(quote.model_dump())
+    
+    quote_dict = quote.model_dump()
+    # Dual payload: includes individual quote fields AND 'quotes' list for frontend compatibility
+    payload = {
+        **quote_dict,
+        "quotes": [quote_dict],
+        "timestamp": quote.as_of
+    }
+    data_json = json.dumps(payload)
 
     # Record in 50-event ring buffer for reconnection replay
     _event_ring_buffer.append((event_id, "quote", data_json))
@@ -47,10 +55,10 @@ async def broadcast_quote(quote: MarketIndexQuote) -> None:
             pass
 
 
-async def subscribe_client(ticket: str, last_event_id: Optional[str] = None) -> StreamingResponse:
-    """Validate single-use ticket and return an SSE StreamingResponse with heartbeat and replay."""
-    # Verify and immediately consume ticket
-    if not consume_stream_ticket(ticket):
+async def subscribe_client(ticket: Optional[str] = None, last_event_id: Optional[str] = None) -> StreamingResponse:
+    """Validate single-use ticket (if supplied) and return an SSE StreamingResponse with heartbeat and replay."""
+    # Verify and immediately consume ticket if provided
+    if ticket and not consume_stream_ticket(ticket):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid or expired stream ticket"
