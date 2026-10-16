@@ -79,10 +79,12 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# CORS configuration strictly locked to FRONTEND_ORIGIN
+# CORS configuration supporting single origin, comma-separated list, or wildcard regex
+cors_origins = [orig.strip() for orig in settings.FRONTEND_ORIGIN.split(",") if orig.strip() and orig.strip() != "*"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_ORIGIN],
+    allow_origins=cors_origins or ["http://localhost:5173", "http://localhost"],
+    allow_origin_regex=r".*" if "*" in settings.FRONTEND_ORIGIN else None,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],

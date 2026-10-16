@@ -2,7 +2,7 @@ import asyncio
 from collections import deque
 import json
 from pathlib import Path
-from typing import AsyncGenerator, Dict, List, Optional, Set, Tuple
+from typing import Any, AsyncGenerator, Dict, List, Optional, Set, Tuple
 from fastapi import HTTPException, Response, status
 from fastapi.responses import StreamingResponse
 from backend.app.schemas.ticker import MarketIndexQuote, TickerSnapshotPayload

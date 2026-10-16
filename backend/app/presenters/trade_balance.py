@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from backend.app.presenters.base import calculate_level_delta
 from backend.app.schemas.envelope import StatTileMetric
 

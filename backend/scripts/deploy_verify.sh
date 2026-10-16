@@ -14,9 +14,12 @@ if ! docker compose version >/dev/null 2>&1; then
     COMPOSE_CMD="docker-compose"
 fi
 
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "$REPO_ROOT"
+
 # 2. Boot Compose Stack
 echo "[1/4] Starting isolated production container stack..."
-$COMPOSE_CMD -f docker-compose.prod.yml up -d --build
+$COMPOSE_CMD -f docker-compose.yml up -d --build
 
 # 3. Wait for Healthcheck
 echo "[2/4] Awaiting backend service healthcheck..."
@@ -56,7 +59,7 @@ fi
 
 # 5. Upstream Reachability Probe
 echo "[4/4] Executing upstream reachability probe from within container..."
-$COMPOSE_CMD -f docker-compose.prod.yml exec -T backend python scripts/probe_sources.py || true
+$COMPOSE_CMD -f docker-compose.yml exec -T backend python backend/scripts/probe_sources.py || true
 
 echo "============================================================"
 echo " Deployment & Isolation Verification Complete!"

@@ -16,19 +16,13 @@ Production-grade, resilient FastAPI backend for the Economic Indicator Dashboard
 
 ---
 
-## 2. Operational Modes (`DATA_MODE`)
+## 2. Operational Architecture
 
-Controlled via environment variable `DATA_MODE=mock|live`:
-
-1. **`DATA_MODE=mock` (Default for local development and testing)**:
-   - Serves deterministic JSON fixtures (`backend/fixtures/*.json`) identical in shape to the React frontend mocks.
-   - Zero database writes and zero external upstream network calls.
-   - Supports `/api/indicators/*`, `/api/dashboard`, `/api/ticker`, and mock SSE streaming.
-
-2. **`DATA_MODE=live`**:
-   - Connects to PostgreSQL via `psycopg3` connection pool.
-   - Executes background collector adapters (World Bank API, IMF DataMapper, NSE allIndices with session warming, BSE SENSEX).
-   - Ingests curated Union Budget and GST seed CSVs idempotently using SHA-256 checksums.
+The backend operates strictly in **Live Mode (`DATA_MODE=live`)**:
+- Connects directly to PostgreSQL 16 via `psycopg3` connection pool.
+- Background APScheduler dynamically updates quotes every 20 seconds during NSE market hours (09:15–15:30 IST) and every 10 minutes off-hours.
+- Executes upstream collectors with automated fallback (NSE/BSE ticker with Yahoo Finance fallback, World Bank, IMF DataMapper).
+- Ingests official Union Budget (`indiabudget.gov.in`) and GST monthly figures (`data.gov.in`) into PostgreSQL `observations`.
 
 ---
 
@@ -36,7 +30,7 @@ Controlled via environment variable `DATA_MODE=mock|live`:
 
 ### Prerequisites
 - Python 3.11+
-- PostgreSQL 16 (for `DATA_MODE=live`)
+- PostgreSQL 16
 
 ### Installation
 ```bash
@@ -49,11 +43,8 @@ cp .env.example .env
 
 ### Running the Server
 ```bash
-# Mock mode (no database required):
-DATA_MODE=mock uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
-
-# Live mode (requires PostgreSQL):
-DATA_MODE=live uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+# Start FastAPI live server (PostgreSQL connected)
+DATA_MODE=live ALLOW_INSECURE_DEFAULTS=true uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 ---
@@ -117,22 +108,23 @@ curl -N "http://localhost:8000/api/stream/ticker?ticket=<TICKET>"
 
 ---
 
-## 7. Automated Testing Suite
+## 7. Diagnostics & Upstream Verification
 
-Execute the complete 25-case automated test suite:
+Run upstream probe and verify system health:
 ```bash
-pytest backend/tests/ -v
+# 1. Run live diagnostic upstream reachability probe
+./backend/.venv/bin/python backend/scripts/probe_sources.py
+
+# 2. Check live system health and background scheduler stats
+curl -s http://localhost:8000/health | jq .
 ```
 
-Tests validate:
-- Authentication, expired tokens, role authorization guards
-- SQL injection resilience across inputs and routes
-- D3 tile delta rules (percentage point subtractions for rates, YoY growth delta for levels)
-- Staleness marking when `fetched_at` exceeds $2\times$ refresh interval
-- World Bank, IMF, and NSE/BSE collector resilience with `respx` mocks
-- Market hours evaluation (`Asia/Kolkata`) and holiday stall detection
-- SSE queue delivery, single-use ticket consumption, and ring buffer replay
-- 100% schema parity between `DATA_MODE=mock` and frontend fixtures.
+Verification covers:
+- World Bank, IMF DataMapper, and NSE/BSE upstream latency and status
+- Active database connection pool status
+- Dynamic scheduler job execution states (ticker 20s/10m, daily macro, history cleanup)
+- Authentication and rate-limit guard enforcement
+- Real-time SSE streaming with single-use tickets
 
 ---
 

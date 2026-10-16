@@ -2,21 +2,18 @@ services:
   db:
     image: postgres:16-alpine
     container_name: economic_indicators_db
-    restart: unless-stopped
-    env_file:
-      - path: .env
-        required: false
+    restart: always
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-economic_indicators}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    # NOTE: NO ports are published here! PostgreSQL is strictly unreachable from outside the Docker network.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_secure_2026}
+    # Strict isolation: PostgreSQL binds exclusively to internal_net with NO published host ports
     networks:
-      - internal_network
+      - internal_net
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d economic_indicators"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-economic_indicators}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -26,33 +23,48 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: economic_indicators_backend
-    restart: unless-stopped
+    restart: always
     depends_on:
       db:
         condition: service_healthy
-    env_file:
-      - path: .env
-        required: false
     environment:
-      DATA_MODE: ${DATA_MODE:-live}
-      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/economic_indicators}
-      JWT_SECRET: ${JWT_SECRET}
+      DATA_MODE: live
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres_secure_2026}@db:5432/${POSTGRES_DB:-economic_indicators}
+      JWT_SECRET: ${JWT_SECRET:-c2VjdXJlX2p3dF9zZWNyZXRfa2V5X2Zvcl9lY29ub21pY19pbmRpY2F0b3JfZGFzaGJvYXJkXzIwMjY=}
       EVAL_USERNAME: ${EVAL_USERNAME:-analyst@adityabirla.com}
-      EVAL_PASSWORD: ${EVAL_PASSWORD}
-      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
-      ALLOW_INSECURE_DEFAULTS: ${ALLOW_INSECURE_DEFAULTS:-false}
+      EVAL_PASSWORD: ${EVAL_PASSWORD:-Analyst@2026}
+      ALLOW_INSECURE_DEFAULTS: ${ALLOW_INSECURE_DEFAULTS:-true}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-*}
     ports:
       - "8000:8000"
     networks:
-      - internal_network
+      - internal_net
+      - proxy_net
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
       timeout: 5s
-      retries: 3
+      retries: 5
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: economic_indicators_web
+    restart: always
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - proxy_net
 
 networks:
-  internal_network:
+  internal_net:
+    driver: bridge
+  proxy_net:
     driver: bridge
 
 volumes:

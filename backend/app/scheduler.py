@@ -127,15 +127,15 @@ async def bootstrap_macro_if_empty() -> None:
         return
     try:
         from backend.app.db import fetch_one
-        row = await fetch_one("SELECT COUNT(*) AS cnt FROM observations;")
+        row = await fetch_one("SELECT COUNT(*) AS cnt FROM observations WHERE indicator IN ('debt-to-gdp', 'gdp-growth');")
         cnt = row["cnt"] if row else 0
         if cnt == 0:
-            print("[Scheduler] observations table is empty. Bootstrapping macro collection.")
+            print("[Scheduler] Macro indicators missing. Bootstrapping macro collection from upstream sources...")
             from backend.app.services.macro_job import run_macro_collection_job
             res = await run_macro_collection_job()
             record_job_execution(job_id, job_name, status=res.get("status", "bootstrapped"))
         else:
-            print(f"[Scheduler] observations table has {cnt} rows. Macro bootstrap skipped.")
+            print(f"[Scheduler] observations table has {cnt} macro rows. Macro bootstrap skipped.")
             record_job_execution(job_id, job_name, status="skipped_populated")
     except Exception as e:
         print(f"[Scheduler] Macro bootstrap warning: {e}")

@@ -1,0 +1,54 @@
+{
+    admin off
+}
+
+:80 {
+    # Health check passthrough
+    handle /health {
+        reverse_proxy backend:8000
+    }
+
+    # Interactive API documentation passthrough
+    handle /docs* {
+        reverse_proxy backend:8000
+    }
+
+    handle /openapi.json {
+        reverse_proxy backend:8000
+    }
+
+    # SSE streaming endpoints (strictly unbuffered with real client IP forwarding)
+    handle /api/stream/* {
+        reverse_proxy backend:8000 {
+            flush_interval -1
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # Backend API endpoints
+    handle /api/* {
+        reverse_proxy backend:8000 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # Frontend SPA static files
+    handle {
+        root * /srv/frontend/dist
+        try_files {path} /index.html
+        file_server
+    }
+
+    # Security Headers
+    header {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+}
