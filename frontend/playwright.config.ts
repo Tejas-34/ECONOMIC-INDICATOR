@@ -1,4 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
+import { fileURLToPath } from 'url';
+
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig({
   testDir: './tests/visual',
@@ -22,6 +25,7 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev',
     port: 5173,
+    cwd: __dirname,
     reuseExistingServer: !process.env.CI,
   },
 });
