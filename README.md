@@ -1,161 +1,165 @@
-# Economic Indicator Dashboard (Full-Stack)
+# Economic Indicator Dashboard
 
-A pixel-perfect, high-performance macroeconomic terminal built to reproduce the authoritative Figma design reference at the exact evaluation viewport of **1214 × 2159 CSS pixels**.
+A full-stack macroeconomic terminal built to reproduce the Figma design specification at the evaluation viewport of 1214 x 2159 CSS pixels.
 
-The application delivers an immediate visual readout of India's macroeconomic figures across six analytical panels, a live market index ticker via Server-Sent Events (SSE), strict data provenance tracking with estimate markers, multiple resilience states (loading, stale, empty, error, unavailable), and secure in-memory JWT authentication.
+The dashboard provides real-time market index quotes and six macroeconomic indicator panels for India: GDP Growth, Debt-to-GDP Ratio, Trade Balance, GST Tax Collection, Inflation, and Government Expenditure.
 
 ---
 
-## 🏛️ Full-Stack Architecture & Security Boundary
+## Architecture
+
+The system consists of three containerized services communicating across isolated Docker bridge networks:
+
+- Frontend: React 18 single-page application built with TypeScript, Redux Toolkit, Apache ECharts, CSS Modules, and Manrope typography.
+- Backend: FastAPI asynchronous application in Python 3.11, using psycopg3 connection pooling with raw parameterized SQL queries, APScheduler for background tasks, and Server-Sent Events (SSE) for market feeds.
+- Web Server and Proxy: Caddy 2 reverse proxy serving production static assets and proxying API endpoints with unbuffered streaming for SSE.
+- Database: PostgreSQL 16 database strictly bound to an internal Docker network with no exposed host ports.
 
 ```
-[ Browser Client (1214 × 2159 px) ]
-         │  HTTPS / WSS / SSE
-         ▼
-[ Caddy 2 Reverse Proxy (Ports 80/443) ]
-         │  Internal Docker Bridge (proxy_net)
-         ▼
+[ Browser Client (1214 x 2159 px) ]
+         |
+         | HTTP / HTTPS / SSE
+         v
+[ Caddy 2 Reverse Proxy (Port 80) ]
+         |
+         | proxy_net
+         v
 [ FastAPI Backend (Port 8000) ]
-  ├── APScheduler (Dynamic Ticker 20s/10m, Daily Macro 06:30 IST)
-  ├── SSE Event Stream Hub (Single-use tickets, 50-event replay buffer)
-  ├── Resilient Upstream Collectors (NSE/BSE, IMF, MoSPI, data.gov.in)
-  └── psycopg3 Async Connection Pool (Raw parameterized SQL only)
-         │  Private Isolated Network (internal_net - No published ports)
-         ▼
+         |
+         | internal_net (isolated)
+         v
 [ PostgreSQL 16 Database ]
 ```
 
-- **Frontend** (`frontend/`): React 18, TypeScript, Redux Toolkit, Apache ECharts, Vite, CSS Modules, Manrope typography.
-- **Backend** (`backend/`): FastAPI (async), PostgreSQL 16 (`psycopg3` connection pooling with raw parameterized SQL), APScheduler, SSE live streaming with monotonic IDs.
-- **Database Security Isolation**: PostgreSQL binds strictly to an internal Docker network with **zero published host ports**. Direct parameterized queries prevent SQL injection without ORM overhead.
-- **Reverse Proxy** (`backend/Caddyfile`): Caddy 2 with unbuffered SSE streaming (`flush_interval -1`) and real client IP forwarding.
-- **Runtime Mode**: Operates in **Live Data Mode** (`DATA_MODE=live`), backed by PostgreSQL and live upstream collectors.
+---
+
+## Indicator Panels and Data Sources
+
+The dashboard displays six analytical panels and a live market ticker. Each indicator tracks official sources, reporting dates, and estimation statuses.
+
+| Panel | Primary Source | Type | As of Date | Methodology and Scope |
+| :--- | :--- | :---: | :---: | :--- |
+| Live Market Ticker | NSE / BSE | Market | Real-time | SENSEX, NIFTY 50, and INR/USD live prices with positive/negative point changes and trading session status. |
+| GDP Growth | IMF WEO / MoSPI | Non-NSE | 2024-12-31 | Real GDP annual growth rate for India (+7.0%) compared with World growth (+3.2%), with 2021-2025 historical data. |
+| Debt to GDP Ratio | IMF DataMapper | Non-NSE | 2025-12-31 | General government gross debt as a percentage of GDP for India (84.3%) and comparison against the US (-40.1% gap), with 2021-2025 annual badges. |
+| Trade Balance | Ministry of Commerce / RBI | Non-NSE | 2025-03-31 | Merchandise Exports ($437.1B) and Imports ($677.2B) alongside Trade Balance percentage-of-GDP trend line. |
+| GST Tax Collection | data.gov.in / Ministry of Finance | Non-NSE | 2025-03-31 | Total GST collections (Rs 16.34L Cr) and monthly average (Rs 1.63L Cr) with domestic and import breakdowns for 2021-2025. |
+| Inflation (CPI) | MoSPI / RBI | Non-NSE | 2025-02-28 | CPI Headline (3.6%) and Core Inflation (3.8%) with RBI medium-term target band (4.0% +/- 2.0%) overlay. |
+| Government Expenditure | Union Budget (indiabudget.gov.in) | Non-NSE | 2025-03-31 | Total Expenditure (Rs 48.21L Cr) and Capital Expenditure (Rs 11.11L Cr) across FY21 to FY25 (Actuals, RE, BE). |
+
+Every panel includes a SourceFooter displaying the source name, reporting date (as of), a Non-NSE identifier for external public data, and an Estimate marker for budget and revised projections.
 
 ---
 
-## 📊 Analytical Panels & Data Provenance
+## Live Ticker and Streaming Protocol
 
-The visible dashboard comprises a live market ticker and six indicator panels, matching the design authority:
+The market ticker streams live index prices through the following flow:
 
-| Panel | Primary Source | Type | As of Date | Transformation / Methodology | Limitations & Fallback |
-| :--- | :--- | :---: | :---: | :--- | :--- |
-| **Live Market Ticker** | NSE allIndices / BSE | NSE / Non-NSE | Real-time | SENSEX, NIFTY 50, INR/USD live quotes; dynamic market hours status (LIVE / CLOSED / STALE). | BSE direct API intermittently returns HTTP 403; automatically falls back to Yahoo Finance feed. |
-| **GDP Growth** | IMF WEO / MoSPI | Non-NSE | 2024-12-31 | India YoY growth (+7.0%, +0.3pp) vs World YoY growth (+3.2%, +0.1pp); historical comparison (2021–2025). | Annual figures released bi-annually. |
-| **Debt to GDP Ratio** | IMF DataMapper (`GGXWDG_NGDP`) | Non-NSE | 2025-12-31 | India FY25 ratio (84.3%, -0.5pp) vs US comparison (-40.1%, -2.6pp); 2021–2025 annual series with floating pill badges. | Projections past current fiscal year represent IMF staff estimates. |
-| **Trade Balance** | Ministry of Commerce & Industry / RBI | Non-NSE | 2025-03-31 | Exports ($437.1B) and Imports ($677.2B); scaled percentage-of-GDP bars (0–10%) and green Trade Balance trend line overlay. | Final balance numbers revised quarterly. |
-| **GST Tax Collection** | data.gov.in (Rajya Sabha) / MoF | Non-NSE | 2025-03-31 | Total collections (₹16.34L Cr) and Monthly Average (₹1.63L Cr) formatted in single-line typography; 2021–2025 domestic vs imports breakdown. | Sourced from official Rajya Sabha resource `a49bb4e6-662a-4cd1-83b7-6add74c1b984`. |
-| **Inflation (CPI)** | MoSPI / RBI | Non-NSE | 2025-02-28 | CPI Headline (3.6%, -1.5pp) and Core Inflation (3.8%, -0.2pp); RBI 4.0% (±2.0%) tolerance band overlay. | Monthly lag of ~12 days. |
-| **Government Expenditure** | Union Budget (`indiabudget.gov.in`) | Non-NSE | 2025-03-31 | Total Expenditure (₹48.21L Cr) and Capital Expenditure (₹11.11L Cr); dual-axis bar & line chart + annual figures table (FY21–FY25 BE). | Sourced from official Union Budget *Budget at a Glance* (Statement 6). |
-
-Every panel displays an authoritative `SourceFooter` with:
-- Source name and reporting period (`As of`).
-- `Non-NSE` tag for external government or multilateral feeds.
-- `Estimate` indicator for Revised Estimates (RE) and Budget Estimates (BE).
+1. Initial Snapshot: On page load, the frontend requests GET /api/ticker to display prices immediately.
+2. Single-Use Ticket: The client requests a 30-second ticket through POST /api/auth/stream-ticket and connects EventSource to /api/stream/ticker?ticket=...
+3. Event Buffer and Replay: The backend assigns sequential IDs to each tick and keeps a 50-event ring buffer. Reconnecting clients pass Last-Event-ID to retrieve missed ticks without gap.
+4. Heartbeats: The server transmits comment heartbeats (: ping) every 15 seconds to prevent intermediate proxy timeout.
+5. Reconnection and Fallback: The client reconnects using exponential backoff with jitter. If SSE fails 3 times consecutively, it falls back to periodic polling (GET /api/ticker every 10 seconds).
+6. Market Status: Quotes are tagged LIVE during NSE trading hours (09:15 to 15:30 IST, Monday to Friday), STALE when upstream quotes are delayed past 40 seconds, and CLOSED outside trading hours.
 
 ---
 
-## 📈 Live Market Ticker & Streaming Protocol
+## Resilience and Interface States
 
-1. **Immediate Initial Snapshot**: On mount, the frontend queries `GET /api/ticker` to render instant prices without waiting for an SSE cycle.
-2. **Single-Use Stream Ticket Handshake**: Browser requests a 30-second single-use ticket via `POST /api/auth/stream-ticket` and connects EventSource to `${origin}/api/stream/ticker?ticket=...`. Missing or expired tickets return HTTP 403 Forbidden.
-3. **Monotonic Ring-Buffer Replay**: The server assigns sequential IDs to every tick and maintains a 50-event ring buffer. On reconnect with `Last-Event-ID`, missed events are replayed immediately.
-4. **Heartbeats & Backoff**: Server sends 15-second heartbeat comments (`: ping\n\n`). Client reconnects with exponential backoff (1s–30s) and jitter.
-5. **Polling Fallback**: If SSE fails after 3 consecutive attempts, client automatically falls back to periodic polling (`GET /api/ticker` every 10s) while continuing background SSE reconnection.
-6. **Market Status**:
-   - `LIVE`: During NSE trading hours (09:15–15:30 IST, Mon–Fri) with quotes fresh within 40 seconds.
-   - `STALE`: Trading hours but quotes older than 40s or SSE disconnected > 60s.
-   - `CLOSED`: Outside trading hours, weekends, or market holidays.
+The user interface handles network disruptions and missing data gracefully:
+
+- Loading State: Animated skeletons display while initial queries resolve.
+- Stale-While-Revalidate: Panels refresh independently on a 5-minute interval. If a background refresh fails, the panel retains its existing data and displays a STALE badge instead of blanking out.
+- Missing Values: If an upstream provider omits a value, the terminal renders a dash (-) rather than fabricating numbers.
+- Error State: If an initial fetch fails without cached data, an error notice with a manual retry button is displayed.
+- Empty State: Explicit empty indicators render if a reporting period contains no observations.
 
 ---
 
-## 🛡️ Resilience & UI States
+## Security and Authentication
 
-- **Loading Skeletons**: High-fidelity animated skeletons render during initial data fetching.
-- **Stale-While-Revalidate**: Every 5 minutes, each panel independently refreshes its data (`fetchIndicatorThunk`). If a network failure occurs, the panel **retains its last valid observation**, displays a `STALE` badge, and never blanks out or impacts adjacent panels.
-- **Missing Value Handling**: Missing or incomplete observations strictly render as `"—"` and never invent data or replace valid points.
-- **Error States with Retry**: Failed panels without prior observations render an error card with a manual `Retry Data` button.
-- **Empty States**: If a reporting period contains zero data points, an explicit empty state notice is displayed.
+- Authentication Method: JSON Web Token (JWT) signed with HMAC SHA-256 (HS256).
+- Token Lifetime: Access tokens expire after 60 minutes. Tokens are held in browser memory and cleared on session expiration.
+- Rate Limiting: Sensitive endpoints such as POST /api/auth/login are limited to 5 requests per minute per IP address via slowapi.
+- Database Security: The PostgreSQL database is attached solely to the private internal_net Docker bridge. Port 5432 has no host mapping and cannot be reached from the public internet.
+- SQL Injection Protection: All database queries use parameterized SQL through psycopg3. No dynamic SQL concatenation is used.
+- Browser Security: Client code contains zero external API credentials or upstream private keys.
 
----
+### Evaluation Credentials
 
-## 🔐 Security & Evaluation Access
-
-- **JWT HS256 Authentication**: Secure in-memory token storage with automatic 60-minute session expiry.
-- **Startup Guard**: In live mode, backend refuses to boot with insecure or default secrets unless `ALLOW_INSECURE_DEFAULTS=true` is set.
-- **Rate Limiting**: Sensitive endpoints (e.g. `POST /api/auth/login`) are rate-limited to 5 requests/minute per client IP using `slowapi`.
-- **Protected Endpoints**: All indicator and ticker endpoints require a valid Bearer token.
-- **No Browser Upstream Credentials**: The frontend communicates exclusively with the FastAPI backend; zero external API keys or upstream credentials reside in client code.
-
-### Panel Evaluation Credentials
-- **Username**: `analyst@adityabirla.com`
-- **Password**: `Analyst@2026`
-- **Role**: `admin`
+- Username: analyst@adityabirla.com
+- Password: Analyst@2026
+- Role: admin
 
 ---
 
-## ⚙️ Environment Variables
+## Configuration
 
-Configuration is driven via `.env` in the project root:
+Environment variables are defined in .env (template provided in .env.example):
 
 | Variable | Context | Default Value | Description |
 | :--- | :--- | :--- | :--- |
-| `DATA_MODE` | Backend | `live` | Operational mode: `live` connects to PostgreSQL and collectors. |
-| `POSTGRES_USER` | Backend / DB | `postgres` | Database username. |
-| `POSTGRES_PASSWORD` | Backend / DB | *(required in prod)* | Database user password. |
-| `DATABASE_URL` | Backend | *(constructed)* | PostgreSQL connection string for psycopg3 async pool. |
-| `JWT_SECRET` | Backend | *(required in prod)* | Secret key (min 32 chars) for signing HS256 tokens. |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | Backend | `60` | Token lifetime before session expiration. |
-| `STREAM_TICKET_EXPIRE_SECONDS`| Backend | `30` | Single-use SSE ticket lifetime. |
-| `EVAL_USERNAME` | Backend | `analyst@adityabirla.com` | Evaluation analyst username. |
-| `EVAL_PASSWORD` | Backend | `Analyst@2026` | Evaluation analyst password hashed at boot. |
-| `ALLOW_INSECURE_DEFAULTS` | Backend | `false` | Set to `true` strictly during local development. |
-| `FRONTEND_ORIGIN` | Backend | `http://localhost:5173` | Allowed CORS origin. |
-| `VITE_API_BASE_URL` | Frontend | `/api` | Base API route prefix. |
+| DATA_MODE | Backend | live | Operational mode (live connects to PostgreSQL and collectors). |
+| POSTGRES_USER | Database | postgres | PostgreSQL administrative username. |
+| POSTGRES_PASSWORD | Database | postgres_secure_2026 | PostgreSQL administrative password. |
+| POSTGRES_DB | Database | economic_indicators | Target database name. |
+| DATABASE_URL | Backend | constructed | Full PostgreSQL connection string for psycopg3. |
+| JWT_SECRET | Backend | 32+ character string | Secret key for signing and validating JWT tokens. |
+| ACCESS_TOKEN_EXPIRE_MINUTES | Backend | 60 | Token validity period in minutes. |
+| STREAM_TICKET_EXPIRE_SECONDS | Backend | 30 | Single-use SSE stream ticket expiration in seconds. |
+| EVAL_USERNAME | Backend | analyst@adityabirla.com | Default evaluation analyst account. |
+| EVAL_PASSWORD | Backend | Analyst@2026 | Default evaluation password. |
+| ALLOW_INSECURE_DEFAULTS | Backend | true | Allows development startup with evaluation defaults. |
+| FRONTEND_ORIGIN | Backend | * | Allowed CORS origin or wildcard for reverse proxy. |
+| VITE_API_BASE_URL | Frontend | /api | Relative API prefix routed through reverse proxy. |
 
 ---
 
-## 🚀 Running the Application
+## Quickstart with Docker Compose
 
-### Option 1: Docker Compose (Root 1-Command Startup)
+Prerequisites: Docker Engine 24+ and Docker Compose v2.
 
 ```bash
-# 1. Create .env from template
+# 1. Clone the repository
+git clone https://github.com/tejaspatare1885/Economics-Indicator.git
+cd Economics-Indicator
+
+# 2. Copy the environment configuration
 cp .env.example .env
 
-# 2. Build and launch all containers (PostgreSQL + FastAPI + Caddy Web Server)
+# 3. Build and start all services
 docker compose up -d --build
-
-# 3. Verify deployment and network isolation
-./backend/scripts/deploy_verify.sh
 ```
 
-- **Frontend & Caddy Reverse Proxy**: [http://localhost](http://localhost) (or `http://<YOUR-EC2-PUBLIC-IP>`)
-- **Backend API Direct**: [http://localhost:8000/api](http://localhost:8000/api)
-- **System Health Check**: [http://localhost/health](http://localhost/health)
-- **Interactive OpenAPI Docs**: [http://localhost/docs](http://localhost/docs)
+Access Points:
+- Dashboard: http://localhost
+- Health Check: http://localhost/health
+- Direct Backend API: http://localhost:8000/api
+- Interactive API Documentation: http://localhost/docs
 
 ---
 
-## ☁️ AWS EC2 Deployment Guide
+## AWS EC2 Deployment Guide
 
-The application is completely containerized and verified to run on any AWS EC2 instance (Ubuntu 22.04 / 24.04 LTS or Amazon Linux 2023).
+The application runs on any modern Linux EC2 instance (Ubuntu 22.04 LTS, Ubuntu 24.04 LTS, or Amazon Linux 2023).
 
-### Step 1: Launch EC2 Instance & Configure Security Group
-- **Instance Type**: `t3.small` or `t3.medium` (minimum 2 GB RAM, 20 GB disk).
-- **Inbound Security Group Rules**:
-  - `HTTP` (Port 80) from `0.0.0.0/0` (Public web access).
-  - `HTTPS` (Port 443) from `0.0.0.0/0` (SSL/TLS).
-  - `SSH` (Port 22) from your IP.
-  - *(Optional)* Custom TCP (Port 8000) if direct backend access without Caddy is desired.
+### 1. Launch Instance and Configure Security Groups
 
-### Step 2: SSH into your EC2 Instance
+- Recommended instance: t3.small or t3.medium (2 GB RAM minimum, 20 GB storage).
+- Inbound security group rules:
+  - Port 80 (HTTP): Allow from 0.0.0.0/0
+  - Port 443 (HTTPS): Allow from 0.0.0.0/0
+  - Port 22 (SSH): Allow from your IP address
+
+### 2. Connect via SSH
+
 ```bash
 ssh -i your-key.pem ubuntu@<YOUR-EC2-PUBLIC-IP>
 ```
 
-### Step 3: Install Docker and Docker Compose
+### 3. Install Docker and Docker Compose
+
 ```bash
-# For Ubuntu:
 sudo apt-get update
 sudo apt-get install -y docker.io docker-compose-v2
 sudo systemctl enable --now docker
@@ -163,77 +167,84 @@ sudo usermod -aG docker $USER
 newgrp docker
 ```
 
-### Step 4: Clone Repository & Launch
+### 4. Deploy Application
+
 ```bash
 git clone https://github.com/tejaspatare1885/Economics-Indicator.git
 cd Economics-Indicator
-
-# Copy environment configuration
 cp .env.example .env
-
-# Launch entire stack with 1 command
 docker compose up -d --build
 ```
 
-### Step 5: Access Dashboard
+### 5. Access the Terminal
+
 Open your browser and navigate to:
 ```text
 http://<YOUR-EC2-PUBLIC-IP>
 ```
-Log in using the evaluation analyst credentials:
-- **Email**: `analyst@adityabirla.com`
-- **Password**: `Analyst@2026`
+
+Log in using the evaluation credentials:
+- Username: analyst@adityabirla.com
+- Password: Analyst@2026
 
 ---
 
-### Option 2: Local Development
+## Local Development
 
-#### 1. Backend (FastAPI + PostgreSQL)
+### Backend Setup
+
+Prerequisites: Python 3.11+ and PostgreSQL 16.
+
 ```bash
 cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-# Run migrations and seed evaluation user
+# Run migrations and seed data
 python scripts/migrate.py
 python scripts/seed_user.py
 python scripts/load_seeds.py
 
-# Start live FastAPI server
+# Start server
 DATA_MODE=live ALLOW_INSECURE_DEFAULTS=true uvicorn backend.app.main:app --port 8000 --reload
 ```
 
-#### 2. Frontend (React 18 + Vite)
+### Frontend Setup
+
+Prerequisites: Node.js 20+ and npm.
+
 ```bash
 cd frontend
 npm install
-
-# Start Vite development server
 npm run dev
 ```
-Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+The frontend development server starts at http://localhost:5173.
 
 ---
 
-## 🧪 System Health & Diagnostic Probes
+## Verification and Diagnostics
 
 ```bash
-# 1. Test live system health & scheduler statistics
-curl -s http://localhost:8000/health | jq .
+# 1. System health and scheduler status
+curl -s http://localhost/health | jq .
 
-# 2. Execute upstream API reachability probe
-./backend/.venv/bin/python backend/scripts/probe_sources.py
+# 2. Automated upstream reachability probe
+docker compose exec backend python backend/scripts/probe_sources.py
 
-# 3. Production build check
+# 3. Full deployment and isolation verification
+./backend/scripts/deploy_verify.sh
+
+# 4. Production frontend build test
 cd frontend && npm run build
 ```
 
 ---
 
-## 📝 Assumptions & Known Limitations
+## Assumptions and Limitations
 
-1. **NSE & BSE Market Hours**: Market data reflects trading hours (09:15–15:30 IST, Monday to Friday). Outside these hours, the terminal displays the last closing quotes and marks market status as `CLOSED`.
-2. **Upstream Cloudflare / Anti-Scraping**: Public BSE endpoints occasionally enforce Cloudflare bot protection (HTTP 403). The collector seamlessly falls back to Yahoo Finance ticker data without service interruption.
-3. **Macroeconomic Reporting Frequencies**: Macro indicators are reported on differing cadences (monthly for CPI and GST, quarterly for Trade Balance, and annually for GDP, Debt-to-GDP, and Budget Expenditure). Observation dates are explicitly documented in each panel's `SourceFooter`.
-4. **Target Viewport**: The application is tailored to the evaluation resolution of **1214 × 2159 CSS pixels**, centered with zero unintended horizontal scroll and fully stable chart canvases.
+1. Market Hours: Market data reflects Indian stock market trading hours (09:15 to 15:30 IST, Monday through Friday). Outside trading hours, the terminal displays the most recent closing prices and sets the session status to CLOSED.
+2. Upstream Bot Protection: Direct BSE query endpoints occasionally return HTTP 403 due to Cloudflare rate limits. When this occurs, the collector automatically falls back to secondary Yahoo Finance feeds without downtime.
+3. Reporting Cadence: Macroeconomic indicators operate on disparate release cycles (CPI and GST monthly, Trade Balance quarterly, GDP and Budget Expenditure annually). Exact observation periods are noted on each panel.
+4. Viewport Specification: Layout geometries are optimized for the evaluation resolution of 1214 x 2159 CSS pixels, centered with no horizontal scroll.
