@@ -1,0 +1,6 @@
+fiscal_year_start,fiscal_year_label,total_expenditure,effective_capex,revenue_expenditure,basis,unit,source_url
+2021,FY2021-22,37.94,8.40,29.54,actual,Rs lakh crore,https://www.indiabudget.gov.in
+2022,FY2022-23,41.87,10.53,31.34,actual,Rs lakh crore,https://www.indiabudget.gov.in
+2023,FY2023-24,44.90,12.71,32.19,actual,Rs lakh crore,https://www.indiabudget.gov.in
+2024,FY2024-25,48.21,15.02,33.19,revised_estimate,Rs lakh crore,https://www.indiabudget.gov.in
+2025,FY2025-26,50.65,17.11,33.54,budget_estimate,Rs lakh crore,https://www.indiabudget.gov.in

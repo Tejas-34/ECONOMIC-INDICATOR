@@ -1,0 +1,6 @@
+fiscal_year,period,gross_collection_lakh_cr,monthly_average_lakh_cr,yoy_growth_pct,source_url
+2021,FY2021-22,14.83,1.24,30.5,https://www.gst.gov.in
+2022,FY2022-23,18.10,1.51,22.0,https://www.gst.gov.in
+2023,FY2023-24,20.18,1.68,11.5,https://www.gst.gov.in
+2024,FY2024-25,22.08,1.84,9.4,https://www.gst.gov.in
+2025,FY2025-26,23.64,1.97,7.1,https://www.gst.gov.in

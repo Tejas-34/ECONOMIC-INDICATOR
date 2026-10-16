@@ -1,0 +1,37 @@
+{
+  "id": "govt-expenditure",
+  "title": "Government Expenditure",
+  "source": "Ministry of Finance, Budget Division",
+  "source_type": "external",
+  "as_of": "FY 2024-25 RE",
+  "status": "ok",
+  "values": {
+    "totalExpenditure": {
+      "label": "Total Expenditure",
+      "value": 4.82,
+      "formattedValue": "4.82%",
+      "delta": -0.2,
+      "formattedDelta": "-0.2pp",
+      "deltaUnit": "pp",
+      "deltaDirection": "negative",
+      "iconKey": "expenditure"
+    },
+    "capitalExpenditure": {
+      "label": "Capital Expenditure",
+      "value": 3.82,
+      "formattedValue": "3.82%",
+      "delta": -0.2,
+      "formattedDelta": "-0.2pp",
+      "deltaUnit": "pp",
+      "deltaDirection": "negative",
+      "iconKey": "parliament"
+    }
+  },
+  "series": [
+    { "year": "2021", "revenueExpenditure": 7.9, "capitalExpenditure": 23.2, "totalExpenditure": 31.2 },
+    { "year": "2022", "revenueExpenditure": 7.9, "capitalExpenditure": 23.2, "totalExpenditure": 31.2 },
+    { "year": "2023", "revenueExpenditure": 7.9, "capitalExpenditure": 23.2, "totalExpenditure": 31.2 },
+    { "year": "2024", "revenueExpenditure": 7.9, "capitalExpenditure": 23.2, "totalExpenditure": 31.2 },
+    { "year": "2025", "revenueExpenditure": 7.9, "capitalExpenditure": 23.2, "totalExpenditure": 31.2 }
+  ]
+}

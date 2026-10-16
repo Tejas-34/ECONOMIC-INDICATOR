@@ -1,0 +1,45 @@
+{
+  "timestamp": "2026-10-15T16:40:00.000Z",
+  "quotes": [
+    {
+      "symbol": "SENSEX",
+      "currentPrice": 73158.24,
+      "changePoints": 305.10,
+      "changePercent": 0.42,
+      "isPositive": true,
+      "updatedAt": "2026-10-15T16:40:00.000Z"
+    },
+    {
+      "symbol": "NIFTY BANK",
+      "currentPrice": 46919.80,
+      "changePoints": -56.30,
+      "changePercent": -0.12,
+      "isPositive": false,
+      "updatedAt": "2026-10-15T16:40:00.000Z"
+    },
+    {
+      "symbol": "NIFTY IT",
+      "currentPrice": 37842.15,
+      "changePoints": 412.50,
+      "changePercent": 1.10,
+      "isPositive": true,
+      "updatedAt": "2026-10-15T16:40:00.000Z"
+    },
+    {
+      "symbol": "SENSEX",
+      "currentPrice": 73158.24,
+      "changePoints": 305.10,
+      "changePercent": 0.42,
+      "isPositive": true,
+      "updatedAt": "2026-10-15T16:40:00.000Z"
+    },
+    {
+      "symbol": "NIFTY BANK",
+      "currentPrice": 46919.80,
+      "changePoints": -56.30,
+      "changePercent": -0.12,
+      "isPositive": false,
+      "updatedAt": "2026-10-15T16:40:00.000Z"
+    }
+  ]
+}

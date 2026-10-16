@@ -34,3 +34,16 @@ Thumbs.db
 coverage/
 playwright-report/
 test-results/
+.pytest_cache/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+ENV/
+*.so
+.mypy_cache/
+.ruff_cache/

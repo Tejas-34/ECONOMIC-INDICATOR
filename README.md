@@ -1,8 +1,13 @@
-# Economic Indicator Dashboard (Frontend)
+# Economic Indicator Dashboard (Full-Stack)
 
 A pixel-perfect, high-performance macroeconomic terminal built to reproduce the authoritative design specifications of `design/reference.png` at **1214 x 2159 CSS pixels**.
 
-The application delivers an immediate visual readout of India's macroeconomic figures across six analytical panels, a live market ticker, strict data provenance tracking, multiple state resilience modes (loading, stale, empty, error, unavailable), and in-memory JWT authentication.
+The application delivers an immediate visual readout of India's macroeconomic figures across six analytical panels, a live market index ticker, strict data provenance tracking, multiple state resilience modes (loading, stale, empty, error, unavailable), and in-memory JWT authentication.
+
+### Full-Stack Architecture
+- **Frontend** (`frontend/`): React 18, Redux Toolkit, Apache ECharts, Vite, Selawik / Manrope typography.
+- **Backend** (`backend/`): FastAPI (async), PostgreSQL 16 (psycopg3 connection pooling with raw parameterized SQL), APScheduler, SSE live quote streaming with 50-event ring buffer replay.
+- **Data Modes**: Controlled via `DATA_MODE=mock|live`.
 
 ---
 

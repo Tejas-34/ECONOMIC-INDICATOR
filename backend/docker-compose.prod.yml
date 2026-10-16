@@ -1,0 +1,73 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: economic_db_prod
+    restart: always
+    environment:
+      POSTGRES_DB: economic_indicators
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-prod_secure_db_pass_2026}
+    # IMPORTANT: Postgres binds strictly to the internal network. No published ports to the public host interface.
+    networks:
+      - internal_net
+    volumes:
+      - pgdata_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d economic_indicators"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: economic_backend_prod
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATA_MODE: live
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-prod_secure_db_pass_2026}@db:5432/economic_indicators
+      JWT_SECRET: ${JWT_SECRET:-c2VjdXJlX2p3dF9zZWNyZXRfa2V5X2Zvcl9lY29ub21pY19pbmRpY2F0b3JfZGFzaGJvYXJkXzIwMjY=}
+      EVAL_USERNAME: ${EVAL_USERNAME:-analyst@adityabirla.com}
+      EVAL_PASSWORD_HASH: ${EVAL_PASSWORD_HASH:-$2b$12$e6mO7jJ6g5lWkY8g2k.yquMhT6UfO6b5HjCgV4s9R2E1k3m8t2Y1e}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost}
+    networks:
+      - internal_net
+      - proxy_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: economic_caddy_prod
+    restart: always
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ../frontend/dist:/srv/frontend/dist:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - proxy_net
+
+networks:
+  internal_net:
+    internal: true
+  proxy_net:
+    driver: bridge
+
+volumes:
+  pgdata_prod:
+  caddy_data:
+  caddy_config:
