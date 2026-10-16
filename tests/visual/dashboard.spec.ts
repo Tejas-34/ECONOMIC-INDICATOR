@@ -43,21 +43,19 @@ test.describe('Economic Indicator Dashboard Visual & Layout Evaluation', () => {
     await expect(ticker.locator('text=SENSEX').first()).toBeVisible();
   });
 
-  test('supports demonstrating loading, stale, and unavailable lifecycle states', async ({ page }) => {
-    // Click LOADING simulation
-    await page.click('button:has-text("LOADING")');
-    await expect(page.locator('[data-testid="panel-loading"]').first()).toBeVisible();
+  test('displays only Sign Out button and signs out user to login page', async ({ page }) => {
+    // Verify simulation buttons are not present
+    await expect(page.locator('button:has-text("NORMAL")')).toHaveCount(0);
+    await expect(page.locator('button:has-text("LOADING")')).toHaveCount(0);
+    await expect(page.locator('button:has-text("STALE")')).toHaveCount(0);
 
-    // Click STALE simulation
-    await page.click('button:has-text("STALE")');
-    await expect(page.locator('text=STALE').first()).toBeVisible();
+    // Verify Sign Out button is visible and functional
+    const signOutBtn = page.locator('button:has-text("Sign Out")');
+    await expect(signOutBtn).toBeVisible();
+    await signOutBtn.click();
 
-    // Click UNAVAILABLE simulation
-    await page.click('button:has-text("UNAVAILABLE")');
-    await expect(page.locator('text=Upstream data feed is temporarily unavailable.').first()).toBeVisible();
-
-    // Return to NORMAL
-    await page.click('button:has-text("NORMAL")');
-    await expect(page.locator('[data-testid="panel-ok"]').first()).toBeVisible();
+    // Verify redirect to login
+    await expect(page).toHaveURL(/.*\/login/);
+    await expect(page.locator('button[type="submit"]')).toBeVisible();
   });
 });

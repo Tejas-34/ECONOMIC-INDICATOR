@@ -27,7 +27,7 @@
   --radius-pill: 35px;
 
   /* Typography */
-  --font-primary: 'Segoe UI', 'Selawik', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-primary: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   --font-ticker: 'Manrope', 'Segoe UI', sans-serif;
 
   --font-size-title: 36px;

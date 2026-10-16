@@ -2,38 +2,6 @@
 @import '@fontsource/manrope/700.css';
 @import './tokens.css';
 
-/* Metric-compatible Segoe UI fallback if local Segoe UI not present */
-@font-face {
-  font-family: 'Selawik';
-  src:
-    local('Segoe UI'),
-    local('Segoe UI Regular'),
-    url('/fonts/selawik.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Selawik';
-  src:
-    local('Segoe UI Semibold'),
-    url('/fonts/selawik-semibold.woff2') format('woff2');
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Selawik';
-  src:
-    local('Segoe UI Bold'),
-    url('/fonts/selawik-bold.woff2') format('woff2');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
 *,
 *::before,
 *::after {
