@@ -1,161 +1,137 @@
-# Research & Architecture Decisions: Economic Indicator Dashboard
+# Research & Architecture Decisions: Economic Indicator Dashboard (Full-Stack)
 
 **Feature**: [001-economic-indicator-dashboard](file:///Users/tejaspatare/Documents/AdityaBirla/Economics-Indicator/specs/001-economic-indicator-dashboard/spec.md)  
-**Date**: 2026-10-15  
+**Date**: 2026-10-16  
 **Status**: Approved
 
-This document consolidates architectural investigations, technology evaluations, and design decisions for implementing the frontend dashboard.
+This document consolidates architectural investigations, technology evaluations, and design decisions for implementing the full-stack FastAPI backend and its integration with the React dashboard.
 
 ---
 
-## 1. Styling Architecture & Design Tokens
+## 1. Backend Web Framework & Concurrency
 
 ### Decision
-Use **CSS Modules** combined with **CSS Custom Properties (CSS Variables)** declared in `src/styles/tokens.css` based on `design/token.md` and `design/figma-export.css`.
+Use **FastAPI (async)** running on a **single Uvicorn worker process**.
 
 ### Rationale
-1. **Pixel-Level Fidelity**: The Figma export contains explicit subpixel borders (`1.07px #415D88`), complex radial/linear gradients, exact backdrop filters (`blur(59.2px)`), and fine-tuned component coordinates. CSS Modules allow exact reproduction without fighting utility class abstraction limits.
-2. **Encapsulation**: CSS Modules automatically scope class names to prevent collision between panels, stat tiles, and ticker elements.
-3. **Token Management**: Centralizing colors (`--color-bg-panel`, `--color-accent-cyan`, `--color-delta-pos`, `--color-delta-neg`, etc.), typography sizes, and radii in `:root` allows consistent theming and straightforward audits against `design/token.md`.
+1. **High Concurrency for SSE**: Real-time market index quotes require maintaining open streaming connections to all active analyst browser sessions. FastAPI's native `asyncio` foundation handles thousands of concurrent SSE connections with minimal memory footprint.
+2. **Lifespan Integration**: FastAPI's `@asynccontextmanager` lifespan cleanly initializes and disposes the database connection pool, the background task scheduler, the HTTP client pool, and the SSE broadcaster within a single event loop.
+3. **Single-Worker Predictability**: A single Uvicorn process eliminates distributed coordination overhead:
+   - In-memory broadcasting queues and ring buffers run without requiring Redis or pub/sub infrastructure.
+   - `APScheduler` executes jobs without distributed locking or multi-worker race conditions.
+4. **Pydantic v2 Native Speed**: High-performance Rust-backed serialization and validation ensure low latency when transforming complex time series data into standardized response envelopes.
 
 ### Alternatives Considered
-- **Tailwind CSS**: Rejected because the majority of styles in the Figma export rely on custom gradients, arbitrary subpixel borders, and non-standard blur radii. Generating endless arbitrary utility strings (e.g. `bg-[linear-gradient(0deg,#061E44,#0FB8E6)]`) creates bloated, unreadable markup.
-- **CSS-in-JS (Styled-Components / Emotion)**: Rejected due to runtime JavaScript style calculation overhead, larger client bundle, and potential SSR/Vite hydration complexity.
+- **Flask / Django**: Rejected due to synchronous blocking defaults, awkward SSE handling, and heavy ORM baggage.
+- **Celery + Redis**: Rejected as overengineered; the background workload consists of lightweight periodic polling (ticker every 20s, macro daily at 06:30 IST), easily handled by an in-process `AsyncIOScheduler`.
 
 ---
 
-## 2. Charting Library & Tree-Shaking Strategy
+## 2. Database Engine, Access & Migration Strategy
 
 ### Decision
-Use **Apache ECharts** (`echarts/core`) via `echarts-for-react`, employing tree-shaken imports and lazy loading panel charts via React `Suspense` / `React.lazy`.
-
-### Registered Modules
-```typescript
-import * as echarts from 'echarts/core';
-import { BarChart, LineChart } from 'echarts/charts';
-import {
-  GridComponent,
-  TooltipComponent,
-  LegendComponent,
-  MarkPointComponent,
-  GraphicComponent
-} from 'echarts/components';
-import { CanvasRenderer } from 'echarts/renderers';
-
-echarts.use([
-  BarChart,
-  LineChart,
-  GridComponent,
-  TooltipComponent,
-  LegendComponent,
-  MarkPointComponent,
-  GraphicComponent,
-  CanvasRenderer
-]);
-```
+Use **PostgreSQL 16** with **psycopg3 (`psycopg[binary,pool]`)**, an **`AsyncConnectionPool`**, raw parameterized SQL queries, and numbered `.sql` migration files.
 
 ### Rationale
-1. **Complex Chart Requirements**:
-   - Panel 1 (GDP Growth): Grouped bars with vertical gradient fills (`#061E44` to `#0FB8E6` and `#FFB012` to `#844B08`) and top-anchored numeric labels.
-   - Panel 2 (Debt to GDP): Smooth area gradient line chart with custom pill-shaped value labels at selected inflection points.
-   - Panel 3 (Trade Balance): Combined grouped bars + overlaid green line with circular pill badges.
-   - Panel 4 (GST): Bar chart combined with connected yellow line with point markers.
-   - Panel 5 (Inflation): Area line chart with custom highlighted badges.
-   - Panel 6 (Expenditure): Stacked bars with dual labels (individual segment values inside bars, total sum above each bar).
-2. **Tree-Shaking**: Importing only required charts and components reduces ECharts bundle footprint by >60% compared to importing the full `echarts` bundle.
-3. **Event Support**: Native support for hover tooltips, click events for legend toggles, and resize observers.
-4. **Isolated Option Builders**: Each panel contains its own memoized option builder function (`buildGdpChartOption`, `buildDebtChartOption`, etc.) that cleanly separates data mapping from rendering.
+1. **No ORM Overhead**: The application schema is lean (7 tables) and relies heavily on atomic upserts (`ON CONFLICT (indicator, series, period) DO UPDATE`). Raw parameterized SQL provides predictable performance, zero N+1 query surprises, and zero ORM mapping abstraction bugs.
+2. **psycopg3 Native Async & Pipeline Support**: Direct `async with pool.connection()` context managers provide robust connection pooling, automatic cleanup on client aborts, and efficient parameterized type conversions.
+3. **Deterministic Numbered Migrations**: Sequential SQL scripts (`migrations/001_initial_schema.sql`, `002_...`) tracked in a `schema_migrations` table run inside explicit transactions, making schema upgrades auditable and reproducible without Alembic or third-party tools.
 
 ### Alternatives Considered
-- **Recharts**: Insufficient control over custom pill badges, complex stacked bar total annotations, and custom multi-stop canvas gradient definitions.
-- **Chart.js**: Difficult to achieve exact stacked bar segment labels plus top totals simultaneously with fine-grained SVG/canvas filters.
-- **D3.js directly**: High development overhead and boilerplate for tooltips, legend toggling, and canvas/SVG resizing.
+- **SQLAlchemy / Tortoise ORM**: Rejected per project constraints (out of scope). ORMs add unnecessary complexity, query overhead, and migration friction.
+- **SQLite**: Rejected because concurrent collector writes and read streams under asynchronous loads risk database locks; PostgreSQL 16 provides row-level MVCC locking.
 
 ---
 
-## 3. Real-Time Ticker Architecture
+## 3. In-Process Task Scheduling
 
 ### Decision
-Implement a custom React hook `useTickerStream` utilizing **Server-Sent Events (SSE)** with automatic exponential backoff reconnection (1s, 2s, 4s, 8s, up to 15s max) and a silent **polling fallback** (`/api/ticker/latest` every 5 seconds) if SSE fails repeatedly.
+Use **APScheduler** (`AsyncIOScheduler`) started within the FastAPI lifespan context.
 
-### Component Isolation & Performance
-- The ticker state is encapsulated within `src/components/Ticker/Ticker.tsx` or a dedicated context.
-- Quote updates received via SSE/polling update internal ticker state without triggering re-renders in the parent dashboard layout or the six indicator panels.
-- Continuous scrolling is powered by CSS hardware-accelerated animations (`transform: translate3d(...)`) with `animation-play-state: paused` on `:hover`.
-
-### Alternatives Considered
-- **WebSockets**: Overkill for a unidirectional market index quote broadcast; introduces stateful connection management on proxies and firewalls.
-- **Pure Polling**: Fails to meet the "live updates arrive without page reload" latency expectation and causes unnecessary HTTP connection bursts.
+### Rationale
+1. **Direct Event Loop Integration**: `AsyncIOScheduler` schedules native Python async functions directly onto the FastAPI event loop, sharing the global `httpx.AsyncClient` and `AsyncConnectionPool`.
+2. **Scheduling Windows & Constraints**:
+   - **Market Ticker**: Every 20 seconds during market hours (`09:15-15:30 Asia/Kolkata`, Mon–Fri) and every 10 minutes outside market hours.
+   - **Macro Indicators**: Daily at `06:30 Asia/Kolkata` (post-closing / morning readiness) and on application startup if the `observations` table is empty.
+   - **Seed Loader**: Startup check calculating SHA-256 checksums against `seed_files`.
+   - **Ticker History Purge**: Daily cleanup retaining the last 7 days of quote snapshots.
+3. **Execution Guardrails**:
+   - `max_instances=1`: Guarantees a job never runs concurrently with itself.
+   - `coalesce=True`: Collapses missed triggers during temporary slowdowns.
+   - `misfire_grace_time=60`: Tolerates transient event loop delays.
+   - Every run writes its start time, finish time, row count, status, and error log into `collector_runs`.
 
 ---
 
-## 4. API Client & Mock Layer Architecture
+## 4. Upstream Collector Resilience & Data Governance
 
 ### Decision
-Create a unified API client `src/api/client.ts` with an environment-based mock routing layer:
-- `VITE_API_BASE_URL`: Defines the backend root endpoint.
-- `VITE_USE_MOCKS=true`: Intercepts calls and serves static/dynamic JSON mocks from `src/mocks/`.
+Implement a standardized `BaseCollector` pattern with timeouts, exponential backoff with jitter, per-host throttling, circuit breakers, and domain plausibility guards.
 
-### Indicator Contract
-All 6 indicator panel endpoints follow a uniform contract:
-```typescript
-export type SourceType = 'NSE' | 'external';
-export type IndicatorStatus = 'ok' | 'stale' | 'unavailable';
-
-export interface IndicatorResponse<TValues = Record<string, unknown>, TSeries = unknown> {
-  id: string;
-  title: string;
-  subtitle?: string;
-  source: string;
-  source_type: SourceType;
-  as_of: string;
-  status: IndicatorStatus;
-  values: TValues;
-  series: TSeries;
-}
-```
-
-### Swappability Guarantee
-When switching from mock mode to a production backend, only `.env` needs updating:
-```env
-VITE_API_BASE_URL=https://api.macro-analytics.adityabirla.com
-VITE_USE_MOCKS=false
-```
-Zero lines of application or component code need to be modified.
+### Rationale
+1. **Network Resilience**:
+   - Connect timeout: `3.0s`; Read timeout: `8.0s`.
+   - Retries: Maximum 3 attempts with exponential backoff plus random jitter (`delay = min(5.0, 1.0 * (2 ** attempt) + random.uniform(0, 0.5))`).
+   - Per-host minimum interval: `15.0s` between consecutive requests to the same host to prevent being rate-limited or IP-banned.
+   - Circuit Breaker: 5 consecutive failures trip the breaker, rejecting requests to that host for `5.0 minutes`.
+2. **Domain Plausibility Guards**:
+   - GDP Growth: `-20.0%` to `+30.0%`
+   - Inflation: `-10.0%` to `+50.0%`
+   - Debt to GDP: `0.0%` to `200.0%`
+   - Ticker % Change: `-20.0%` to `+20.0%`
+   - Any value outside bounds, `NaN`, or `Infinity` is rejected. The database retains the last known good observation, and a failure record is logged in `collector_runs`.
+3. **Upstream Adapter Strategies**:
+   - **NSE Adapter**: Visits `https://www.nseindia.com` first to warm session cookies, then queries `/api/allIndices` with full desktop browser headers (`User-Agent`, `Accept-Language`, `Referer`), renewing session cookies on HTTP 401/403.
+   - **BSE Adapter**: Fetches SENSEX with an automated fallback to Yahoo Finance (`^BSESN`).
+   - **World Bank & IMF**: Formatted REST queries with ISO3 country codes (`IND`, `WLD`, `USA`) and indicator codes.
+   - **Seed Loader**: Reads `data/seed/gst_monthly.csv` and `data/seed/government_expenditure.csv`, computing SHA-256 checksums to guarantee idempotent imports.
 
 ---
 
-## 5. In-Memory Authentication & Session Management
+## 5. Live Streaming Architecture (Server-Sent Events)
 
 ### Decision
-Store the JWT access token strictly in **memory** (within React state / closure in `src/auth/AuthContext.tsx`). Provide automatic token refreshing via a background timer scheduled ~60 seconds before token expiration (`exp` claim).
+Implement **Server-Sent Events (SSE)** via FastAPI `StreamingResponse` using an in-process broadcaster with a 50-event ring buffer and single-use tickets.
 
-### Security & Lifecycle
-- **No Secrets in Storage**: Access tokens are never stored in `localStorage` or `sessionStorage` to guard against XSS extraction.
-- **Route Protection**: `<ProtectedRoute>` wrapper inspects authentication status; unauthenticated accesses are redirected to `/login` with the attempted destination preserved in state.
-- **401 Interception**: When any API response returns HTTP 401 Unauthorized, the client triggers a refresh attempt; if the refresh fails or the session is invalid, user session state is reset and the user is redirected to `/login?session_expired=true`.
-- **Demo Mode**: For development/mock evaluation, preset mock credentials (`analyst@adityabirla.com` / `Analyst@2026`) generate valid mock JWTs with simulated expiry controls.
+### Rationale
+1. **Unidirectional Push**: Market ticker updates flow unidirectionally from server to clients. SSE operates over standard HTTP/1.1 and HTTP/2 without WebSocket handshake complexity or stateful proxy upgrades.
+2. **Single-Use 30-Second Ticket**:
+   - Authenticated clients call `POST /api/auth/stream-ticket` (requiring Bearer JWT).
+   - Backend issues a cryptographically random, single-use ticket stored with a 30-second TTL.
+   - Client opens `GET /api/stream/ticker?ticket=<ticket>`.
+   - Prevents passing persistent JWT access tokens in query parameters (which appear in server access logs and browser history).
+3. **Congestion & Disconnect Management**:
+   - Each connected client gets a bounded `asyncio.Queue(maxsize=100)`. If a slow client queue fills, the oldest event is dropped.
+   - A global ring buffer stores the last 50 quote events, supporting `Last-Event-ID` replay when clients reconnect after transient network drops.
+   - Every 15 seconds, a heartbeat comment (`: ping\n\n`) is sent to keep intermediate proxies and browser connections alive.
+   - Disconnected client queues are unregistered and garbage collected.
 
 ---
 
-## 6. Self-Hosted Typography & Assets
+## 6. Multi-Tier Caching & Freshness Strategy
 
 ### Decision
-- **Typography**:
-  - `Segoe UI` stack: `'Segoe UI', Selawik, system-ui, -apple-system, sans-serif`.
-  - Self-host **Selawik** (open-source, metric-compatible replacement created by Microsoft) via `public/fonts/`.
-  - Load **Manrope** (weights 600, 700 for ticker symbols) via `@fontsource/manrope`.
-- **Images & Icons**:
-  - Extract frames and artwork from `design/frames/` and `design/reference.png`.
-  - Store optimized SVGs and WebP assets in `src/assets/` / `public/assets/`.
-  - Flag icons (India, US) and 3D finance graphics (coins, ships, invoices, dartboards, buildings) loaded as static image assets.
+Implement a 4-tier caching architecture prioritizing database truth and fast response delivery.
+
+### Rationale
+1. **PostgreSQL as Source of Truth**: All verified observations and quote snapshots live in PostgreSQL.
+2. **In-Memory TTL Cache (`cachetools`)**: Assembled response envelopes are cached in memory (5 seconds for ticker, 10 minutes for macro indicators), invalidated immediately by collector write hooks.
+3. **HTTP Cache Control & ETags**:
+   - `/api/dashboard` and `/api/indicators/*`: `Cache-Control: private, max-age=60` with `ETag` generation; returns HTTP 304 Not Modified when data has not changed.
+   - `/api/ticker` and `/api/stream/ticker`: `Cache-Control: no-store, no-cache`.
+4. **Upstream Protection**: Endpoints only query the local database or in-memory cache; clients NEVER trigger upstream external network requests directly.
 
 ---
 
-## 7. Layout Fidelity & Visual Regression Testing
+## 7. Authentication, Security & Rate Limiting
 
 ### Decision
-- **Fixed Canvas**: Sized at `1214px` width and minimum `2159px` height.
-- **Grid Layout**: 2 columns x 3 rows with `582px` card width and `544px` card height, `24px` horizontal/vertical gap, and `30px` lateral padding.
-- **Zero Cumulative Layout Shift (CLS)**: Fixed dimensions for panel cards (`582 x 544 px`) and fixed chart containers (`height: 310px`) ensure identical layout during loading skeletons and active data states.
-- **Visual Regression**: Playwright automated test suite configured to capture full-page screenshots at `1214 x 2159` viewport and perform pixel diffing against `design/reference.png`.
+Use **JWT HS256** with 60-minute access tokens, **bcrypt** password hashing, and **slowapi** IP-based rate limiting.
+
+### Rationale
+1. **Access Tokens**: 60-minute access token signed with `JWT_SECRET` (minimum 32 bytes enforced at startup). No refresh token mechanism (per project constraints).
+2. **Rate Limiting**: Login endpoint `POST /api/auth/login` is rate-limited to 5 requests per minute per client IP using `slowapi`, protecting against brute-force attacks.
+3. **Security Headers & CORS**:
+   - `CORS`: Allowed origins strictly bound to `FRONTEND_ORIGIN`.
+   - Security headers: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Content-Security-Policy`.
+4. **Seeded Evaluation User**: Default analyst account seeded from `EVAL_USERNAME` and `EVAL_PASSWORD_HASH` on startup if not present.

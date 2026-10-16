@@ -1,40 +1,39 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "AuthApiContracts",
-  "type": "object",
   "definitions": {
     "LoginRequest": {
       "type": "object",
-      "required": ["email", "password"],
+      "required": ["username", "password"],
       "properties": {
-        "email": { "type": "string", "format": "email" },
+        "username": { "type": "string" },
         "password": { "type": "string" }
       }
     },
     "LoginResponse": {
       "type": "object",
-      "required": ["user", "accessToken", "expiresInSeconds"],
+      "required": ["user", "access_token", "token_type", "expires_in_seconds"],
       "properties": {
         "user": {
           "type": "object",
-          "required": ["id", "email", "name", "role"],
+          "required": ["id", "username", "role"],
           "properties": {
-            "id": { "type": "string" },
-            "email": { "type": "string" },
-            "name": { "type": "string" },
-            "role": { "type": "string", "enum": ["analyst", "admin"] }
+            "id": { "type": "integer" },
+            "username": { "type": "string" },
+            "role": { "type": "string", "enum": ["viewer", "admin"] }
           }
         },
-        "accessToken": { "type": "string" },
-        "expiresInSeconds": { "type": "integer" }
+        "access_token": { "type": "string" },
+        "token_type": { "type": "string", "const": "bearer" },
+        "expires_in_seconds": { "type": "integer", "const": 3600 }
       }
     },
-    "RefreshTokenResponse": {
+    "StreamTicketResponse": {
       "type": "object",
-      "required": ["accessToken", "expiresInSeconds"],
+      "required": ["ticket", "expires_in_seconds"],
       "properties": {
-        "accessToken": { "type": "string" },
-        "expiresInSeconds": { "type": "integer" }
+        "ticket": { "type": "string" },
+        "expires_in_seconds": { "type": "integer", "const": 30 }
       }
     }
   }

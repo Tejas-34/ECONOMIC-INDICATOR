@@ -6,7 +6,24 @@
 
 **Status**: Draft
 
-**Input**: User description: "Build the frontend of an "Economic Indicator" dashboard that reproduces the attached design (design/reference.png) exactly. The design is the authority for layout, typography, colours, charts, cards and labels. Evaluation viewport is 1214 x 2159 CSS px; at that size the whole screen must be legible and stable with no horizontal scroll, clipped content or layout shift. Users: signed-in analysts who want a quick read of India's macro indicators. They sign in, see the dashboard, and see each figure with its source and "as of" date. Screen structure (top to bottom): 1. Title 'ECONOMIC INDICATOR' over a dark candlestick-chart background. 2. Live ticker bar: red 'LIVE' badge with a dot, then a continuously scrolling loop of index quotes, e.g. SENSEX 73,158.24 (+0.42%), NIFTY BANK 46,919.80 (-0.12%), NIFTY IT 37,842.15 (+1.10%). Positive changes green, negative red. 3. Six panels in a 2-column x 3-row grid, each with a header, two stat tiles, and a chart: a. GDP Growth - India vs World (YOY%): tiles India 4.82% and World 3.82% with change in pp; grouped bar chart 2021-2025, India (blue) vs World (orange), y-axis 0-10%, value labels on bars. b. Debt to GDP Ratio (IND): tiles India (FY25) 3.82% and Ind vs US 3.82%; area/line chart, y-axis 50-100%, x-axis dates (25 Jul ... 22 Aug), pill-shaped value labels on selected points. c. Imports, Exports & Trade Balance: tiles Exports $382.9 B and Imports $382.9 B; grouped bars (Imports blue, Exports orange) 2021-2025 plus a green Trade Balance line. d. GST Tax Collection (YOY%): tiles GST Collections 3.82% and Monthly Average 1.97; blue bars plus a yellow line, legend as in the design. e. Inflation (IND): tiles Inflation Rate 2.1% and RBI Target 4%; line chart 2021-2025, y-axis 0-10%. f. Government Expenditure: tiles Total Expenditure 4.82% and Capital Expenditure 3.82%; stacked bars 2021-2025, Revenue Expenditure (blue) and Capital Expenditure (orange) with segment and total labels. Behaviour: Every chart has hover tooltips; legend items toggle series on and off; the ticker pauses on hover. Each panel shows its data source and 'as of' date (non-NSE sources identified as such). Each panel has loading (skeleton), empty, error, stale (data kept but labelled stale) and unavailable states. Missing values render as '—'. Never invent numbers. Sign-in page, protected dashboard route, sign-out, and automatic redirect to sign-in when the session expires. Ticker updates arrive without page reload (live updates). Scope: frontend only. Data comes from a mock API layer that matches the future real API shape; swapping to the real API must only need a base-URL environment variable change. Acceptance: overlaying the screen on design/reference.png at 1214 px wide shows no visible misalignment in spacing, font size, colours or chart proportions; all states above are demonstrable."
+**Input**: User description: "Build the Economic Indicator dashboard with a FastAPI backend and PostgreSQL database serving the React frontend. The design (design/reference.png) is the authority for layout, typography, colours, charts, cards and labels. Evaluation viewport is 1214 x 2159 CSS px; at that size the whole screen must be legible and stable with no horizontal scroll, clipped content or layout shift. The FastAPI backend serves live/mock macroeconomic data from World Bank, IMF, NSE, BSE, data.gov.in, and curated Union Budget seed CSVs via unified standardized indicator envelopes, backed by PostgreSQL (psycopg3 connection pooling with raw SQL) and protected by JWT authentication with live SSE market index streaming."
+
+## Clarifications
+
+### Session 2026-10-16
+- Q: What is the backend scope and technology stack? → A: FastAPI backend with PostgreSQL database using psycopg3 with connection pooling and raw parameterized SQL. Single Uvicorn worker hosting scheduler and in-memory broadcaster in-process. Out of scope: ORM, Redis, multi-worker, user registration UI.
+- Q: How are operational data modes structured? → A: DATA_MODE=mock|live. Mock mode serves fixtures/*.json matching frontend shapes without DB writes or upstream calls (used for tests/demos). Live mode connects to PostgreSQL and runs upstream data collectors. Both modes share identical routes and response envelopes.
+- Q: What is the standard response envelope for indicator endpoints? → A: {indicator, tiles[{label,value,unit,change,change_unit}], series[{name,points[{period,value}]}], source{name,type: nse|external|external-curated,url}, as_of, fetched_at, status: ok|stale|unavailable}. Missing values are null; never invent numbers.
+- Q: What is the calculation rule for stat tile changes? → A: Rate series (GDP, inflation, debt): change = latest - previous in percentage points (pp). Level series (exports, imports, GST, expenditure): change = YoY growth(latest) - YoY growth(previous) in pp. If unavailable, null.
+- Q: What are the upstream sources and mappings for each macroeconomic panel? → A:
+  - GDP Growth: World Bank NY.GDP.MKTP.KD.ZG for IN and WLD (2021-2025). Missing latest year is null; as_of reflects last available year.
+  - Debt to GDP: IMF DataMapper GGXWDG_NGDP for IND and USA annual. Chart x-axis uses years (documented deviation from design dates). Tile "India (FY25)" = latest actual; "Ind vs US" = India minus US gap in pp.
+  - Trade Balance: World Bank NE.EXP.GNFS.CD and NE.IMP.GNFS.CD in US$ B for exports/imports tiles. Bars = YoY growth %. Line = trade balance % of GDP (NE.RSB.GNFS.ZS), signed (axis extends below 0 when negative).
+  - GST Tax Collection: Curated seed file (data/seed/gst_monthly.csv) labeled external-curated. Tile "GST Collections" = FY YoY growth %; "Monthly Average" = FY average gross collection in Rs lakh crore. Bars = YoY growth %; line = monthly average.
+  - Inflation: World Bank FP.CPI.TOTL.ZG for India (2021-2025). RBI target = config constant 4.0 (policy constant, labeled so; change = null).
+  - Government Expenditure: Seed CSV (data/seed/government_expenditure.csv) in Rs lakh crore. Total = total_expenditure; Capital = effective capex; Revenue = total - effective capex. X-axis shows fiscal year start (2021..2025 -> FY2021-22..FY2025-26); FY2025-26 is Revised Estimate. Points carry basis: actual|revised_estimate|budget_estimate. Tiles = YoY growth % of total and capex.
+- Q: How are market index ticker quotes and market hours handled? → A: NIFTY BANK and NIFTY IT from NSE allIndices endpoint (source type: nse). SENSEX from BSE source (source type: external, labeled non-NSE). Payload: symbol, last, change, pct_change, as_of, source, market_status (open|closed|stale). Live stream via SSE using single-use 30-second ticket. Market hours: Mon-Fri 09:15-15:30 Asia/Kolkata (via zoneinfo). Market closed if holiday or upstream timestamp does not advance.
+- Q: What security, auth, and freshness rules govern backend services? → A: JWT HS256 with 60-minute access token (no refresh token), Bearer header, bcrypt password hashing, roles: viewer|admin, seeded evaluation user from env vars. Login rate-limited to 5 requests/min/IP. Generic error messages. All /api/* protected except login. CORS restricted to deployed frontend origin. Data is marked stale when fetched_at exceeds 2x refresh interval or refresh failed (stale data retained and labeled).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -174,22 +191,39 @@ As an authorized analyst, I want to sign in through a secure authentication scre
 - **FR-024**: System MUST provide a clear sign-out capability that terminates the active analyst session and returns to the sign-in page.
 - **FR-025**: System MUST monitor session validity and automatically redirect the analyst to the sign-in view upon session expiration.
 
-#### API Contract & Modularity
-- **FR-026**: System MUST supply a mock data abstraction layer whose schema, parameter signatures, and response payloads exactly mirror the target production API specification.
-- **FR-027**: System MUST allow switching from mock data to live backend API services exclusively through an environment configuration change (base URL) without requiring frontend codebase modifications.
+#### API Contract & Backend Architecture
+- **FR-026**: System MUST provide dual runtime operational modes controlled via `DATA_MODE=mock|live`. In `mock` mode, the backend MUST serve static JSON fixtures matching the frontend schema with zero database writes or external upstream requests. In `live` mode, the backend MUST query PostgreSQL and execute upstream data collector jobs.
+- **FR-027**: System MUST serve every macroeconomic indicator endpoint (`/api/indicators/{id}`) using a standardized response envelope: `{indicator, tiles[{label,value,unit,change,change_unit}], series[{name,points[{period,value,basis?}]}], source{name,type,url}, as_of, fetched_at, status}`.
+- **FR-028**: System MUST compute stat tile changes strictly as: (a) for rate series (GDP, inflation, debt), change = latest - previous in percentage points (`pp`); (b) for level series (exports, imports, GST, expenditure), change = YoY growth(latest) - YoY growth(previous) in `pp`. Missing or non-computable changes MUST be returned as `null`.
+- **FR-029**: System MUST collect live and historical indicator data from authoritative upstreams:
+  - GDP: World Bank `NY.GDP.MKTP.KD.ZG` for India and World (2021–2025). Missing values MUST be null; `as_of` MUST state the latest available year.
+  - Debt to GDP: IMF DataMapper `GGXWDG_NGDP` for India and USA (annual data). The chart X-axis MUST display years (documented deviation from the design reference dates). Tile 1 MUST reflect the latest actual; Tile 2 MUST reflect India minus US gap in percentage points (`pp`).
+  - Trade: World Bank `NE.EXP.GNFS.CD` and `NE.IMP.GNFS.CD` for export/import tiles in US$ B. Series bars represent YoY growth %; line represents signed trade balance % of GDP (`NE.RSB.GNFS.ZS`).
+  - GST: Seed dataset (`data/seed/gst_monthly.csv`) labeled `external-curated`. Tile 1 reflects FY YoY growth %; Tile 2 reflects FY average monthly gross collection in Rs lakh crore.
+  - Inflation: World Bank `FP.CPI.TOTL.ZG` for India (2021–2025). RBI Target tile MUST return policy constant `4.0` (labeled policy constant, change `null`).
+  - Government Expenditure: Seed dataset (`data/seed/government_expenditure.csv`) in Rs lakh crore with total, effective capex, and revenue expenditure across fiscal years FY2021-22 through FY2025-26. Each point MUST include `basis` (`actual`, `revised_estimate`, `budget_estimate`).
+- **FR-030**: System MUST stream live market index quotes (NIFTY BANK and NIFTY IT from NSE allIndices endpoint; SENSEX from BSE source labeled non-NSE) via Server-Sent Events (SSE). Each quote MUST provide `symbol`, `last`, `change`, `pct_change`, `as_of`, `source`, and `market_status` (`open`, `closed`, `stale`).
+- **FR-031**: System MUST compute market open/closed status for Indian market hours: Monday through Friday, 09:15 to 15:30 Asia/Kolkata (via `zoneinfo`). If an upstream quote timestamp fails to advance during market hours (indicating a market holiday), the system MUST label the market as `closed`.
+- **FR-032**: System MUST protect all `/api/*` endpoints (except `/api/auth/login`) using JWT HS256 tokens with 60-minute expiration. Passwords MUST be hashed using `bcrypt`. Roles MUST include `viewer` and `admin`. Evaluation user credentials MUST be seeded from environment variables.
+- **FR-033**: System MUST enforce IP-based rate limiting on login attempts at a threshold of 5 requests per minute per IP address, returning generic failure messages upon authentication failure.
+- **FR-034**: System MUST issue single-use, 30-second validity tickets for authorizing SSE ticker stream connections.
+- **FR-035**: System MUST run under a single Uvicorn worker process hosting the in-process background scheduler and in-memory SSE broadcast manager. Database persistence MUST utilize `psycopg3` with connection pooling, parameterized SQL queries, and numbered `.sql` migration files.
+- **FR-036**: System MUST mark an indicator's status as `stale` when `fetched_at` exceeds twice its expected refresh interval or when the most recent collector execution fails. Stale data MUST be retained in the database and served with `status: "stale"`, and MUST NEVER be overwritten with corrupt or invented data.
 
 ### Key Entities
 
-- **Market Index Quote**: Represents real-time exchange quotes displayed in the live ticker stream.
-  - Attributes: Symbol name (e.g., SENSEX), current price/index points, absolute change value, percentage change value, price change direction (positive, negative, unchanged), last update timestamp.
-- **Indicator Panel**: Represents an analytical macro card within the dashboard grid.
-  - Attributes: Panel ID, panel title, panel subtitle/unit qualifier (e.g., YOY%), category, primary data source name, source classification (NSE vs non-NSE), "as of" reporting timestamp, current lifecycle state (loading, active, empty, error, stale, unavailable).
-- **Stat Metric Tile**: Represents a high-level summary KPI tile displayed at the top of an indicator panel.
-  - Attributes: Metric label, current primary value string, value unit (e.g. %, $B), delta change value, delta change unit (e.g. pp), delta direction (up/positive, down/negative), associated icon or 3D artwork identifier.
-- **Indicator Time-Series**: Represents historical or categorical data series feeding chart components.
-  - Attributes: Series identifier, series display label, theme color gradient, time series points (array of period strings, numerical values, formatted display labels, segment breakdown if stacked).
-- **Analyst Session**: Represents an authenticated user's access context.
-  - Attributes: Analyst identifier/email, authentication token/session token, session creation time, session expiration timestamp, authentication status (authenticated, unauthenticated, expired).
+- **Standard Indicator Envelope**: Unified JSON response structure for macro panels.
+  - Attributes: `indicator` (slug), `tiles` (array of `StatTileMetric`), `series` (array of `TimeSeries`), `source` (`name`, `type`: `nse` | `external` | `external-curated`, `url`), `as_of` (date/year string), `fetched_at` (ISO timestamp), `status` (`ok` | `stale` | `unavailable`).
+- **Stat Metric Tile**: Summary KPI tile inside an indicator panel.
+  - Attributes: `label` (string), `value` (number | null), `unit` (string), `change` (number | null), `change_unit` (string, e.g. `pp`).
+- **Time Series Point**: Chronological observation point in a chart series.
+  - Attributes: `period` (year/date string), `value` (number | null), `basis` (`actual` | `revised_estimate` | `budget_estimate` | null).
+- **Market Index Quote**: Exchange index quote for live ticker stream.
+  - Attributes: `symbol`, `last`, `change`, `pct_change`, `as_of`, `source` (`nse` | `external`), `market_status` (`open` | `closed` | `stale`).
+- **User Account & Session**: Authorized analyst account and JWT credential.
+  - Attributes: `id`, `email`, `hashed_password`, `role` (`viewer` | `admin`), `created_at`.
+- **Data Refresh Record**: Metadata tracking ingestion and freshness.
+  - Attributes: `indicator_id`, `fetched_at`, `refresh_interval_seconds`, `last_status` (`ok` | `failed`), `error_message`.
 
 ## Success Criteria *(mandatory)*
 

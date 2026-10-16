@@ -1,244 +1,269 @@
-# Data Model: Economic Indicator Dashboard
+# Data Model & Schema Specification: Economic Indicator Dashboard
 
 **Feature**: [001-economic-indicator-dashboard](file:///Users/tejaspatare/Documents/AdityaBirla/Economics-Indicator/specs/001-economic-indicator-dashboard/spec.md)  
-**Date**: 2026-10-15  
+**Date**: 2026-10-16  
 **Status**: Approved
 
-This document defines the TypeScript interfaces, domain entities, validation constraints, and lifecycle state machines governing the Economic Indicator Dashboard.
+This document specifies the PostgreSQL 16 relational database schema, SQL constraints, Pydantic v2 schemas, and domain state machines for the Economic Indicator backend and frontend integration.
 
 ---
 
-## 1. Domain Entities & Interfaces
+## 1. Relational Database Schema (PostgreSQL 16)
 
-### 1.1 Generic Indicator Envelope
-Every indicator endpoint returns data conforming to this unified envelope:
+The database schema is managed via numbered raw SQL migrations (`migrations/*.sql`) executed transactionally.
 
-```typescript
-export type SourceType = 'NSE' | 'external';
-export type IndicatorStatus = 'ok' | 'stale' | 'unavailable';
+### 1.1 `users` Table
+Stores authenticated analyst and administrative accounts.
 
-export interface IndicatorEnvelope<TValues, TSeries> {
-  id: string;                      // e.g. "gdp-growth", "debt-to-gdp"
-  title: string;                   // Display title, e.g. "GDP Growth - India vs World"
-  subtitle?: string;                // e.g. "(YOY%)", "(IND)"
-  source: string;                  // e.g. "Ministry of Statistics (MoSPI)", "RBI"
-  source_type: SourceType;         // 'NSE' or 'external'
-  as_of: string;                   // e.g. "2024-03-31", "FY 2024-25 Q3"
-  status: IndicatorStatus;         // Server reported status
-  values: TValues;                 // Key KPI stat tile metrics
-  series: TSeries;                 // Time-series array for ECharts visualization
-}
+```sql
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(64) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(32) NOT NULL DEFAULT 'viewer' CHECK (role IN ('viewer', 'admin')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 ```
 
----
+### 1.2 `sources` Table
+Authoritative registry of external and internal data sources.
 
-### 1.2 Stat Tile Metric Data Model
-Represents individual KPI tiles rendered at the top of each panel:
+```sql
+CREATE TABLE IF NOT EXISTS sources (
+    id VARCHAR(64) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    type VARCHAR(32) NOT NULL CHECK (type IN ('nse', 'external', 'external-curated')),
+    url TEXT NOT NULL,
+    notes TEXT
+);
 
-```typescript
-export type DeltaDirection = 'positive' | 'negative' | 'neutral';
-
-export interface StatTileMetric {
-  label: string;                   // e.g. "India", "World", "Total Expenditure"
-  value: number | string | null;   // e.g. 4.82, 382.9, or null (renders as "—")
-  formattedValue?: string;         // e.g. "4.82%", "$382.9 B"
-  unit?: string;                   // "%", "$ B", ""
-  delta?: number | null;           // e.g. -0.2, -0.81, null
-  formattedDelta?: string;         // e.g. "-0.2pp", "▲ -0.81pp"
-  deltaUnit?: string;              // "pp"
-  deltaDirection: DeltaDirection;  // 'positive' (green) | 'negative' (red) | 'neutral'
-  sublabel?: string;               // Optional qualification, e.g. "(FY25)"
-  iconKey?: string;                // Identifier for artwork or flag (e.g. "india-flag", "world-globe")
-}
+-- Seed initial sources
+INSERT INTO sources (id, name, type, url, notes) VALUES
+('worldbank-gdp', 'World Bank', 'external', 'https://api.worldbank.org/v2/country/{country}/indicator/NY.GDP.MKTP.KD.ZG', 'Annual GDP growth %'),
+('imf-debt', 'IMF DataMapper', 'external', 'https://www.imf.org/external/datamapper/api/v1/GGXWDG_NGDP', 'Central government debt % of GDP'),
+('worldbank-trade', 'World Bank', 'external', 'https://api.worldbank.org/v2/country/IND/indicator/NE.EXP.GNFS.CD', 'Imports, Exports, and Trade Balance'),
+('seed-gst', 'Ministry of Finance / data.gov.in', 'external-curated', 'https://data.gov.in', 'Curated monthly GST collections'),
+('worldbank-inflation', 'World Bank', 'external', 'https://api.worldbank.org/v2/country/IND/indicator/FP.CPI.TOTL.ZG', 'Consumer price index inflation %'),
+('seed-budget', 'Union Budget (Expenditure Profile)', 'external-curated', 'https://www.indiabudget.gov.in', 'Capital, revenue, and total central expenditure'),
+('nse', 'National Stock Exchange of India', 'nse', 'https://www.nseindia.com/api/allIndices', 'NIFTY indices live quotes'),
+('bse', 'Bombay Stock Exchange', 'external', 'https://query1.finance.yahoo.com', 'SENSEX real-time quote')
+ON CONFLICT (id) DO NOTHING;
 ```
 
----
+### 1.3 `observations` Table
+Granular time-series and level metrics across the six macroeconomic indicator cards.
 
-### 1.3 Panel-Specific Data Contracts
+```sql
+CREATE TABLE IF NOT EXISTS observations (
+    id BIGSERIAL PRIMARY KEY,
+    indicator VARCHAR(64) NOT NULL CHECK (indicator IN (
+        'gdp-growth',
+        'debt-to-gdp',
+        'trade-balance',
+        'gst-collection',
+        'inflation',
+        'govt-expenditure'
+    )),
+    series VARCHAR(64) NOT NULL,             -- e.g. 'india', 'world', 'exports', 'imports', 'capex'
+    period VARCHAR(32) NOT NULL,             -- e.g. '2021', '2022', 'FY2024-25', 'FY2025-26'
+    value NUMERIC(18, 4),                    -- NULL allowed for missing historical figures
+    unit VARCHAR(32),                        -- '%', 'US$ B', 'Rs lakh crore'
+    basis VARCHAR(32) CHECK (basis IN ('actual', 'revised_estimate', 'budget_estimate') OR basis IS NULL),
+    source_id VARCHAR(64) NOT NULL REFERENCES sources(id),
+    as_of DATE NOT NULL,
+    fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_indicator_series_period UNIQUE (indicator, series, period)
+);
 
-#### Panel 1: GDP Growth (India vs World)
-```typescript
-export interface GdpGrowthValues {
-  india: StatTileMetric;           // 4.82%, -0.2pp
-  world: StatTileMetric;           // 3.82%, -0.81pp
-}
-
-export interface GdpGrowthPoint {
-  year: string;                    // "2021", "2022", "2023", "2024", "2025"
-  indiaRate: number | null;        // e.g. 8.7
-  worldRate: number | null;        // e.g. 6.3
-}
-
-export type GdpGrowthSeries = GdpGrowthPoint[];
+CREATE INDEX IF NOT EXISTS idx_observations_indicator_period ON observations(indicator, period);
 ```
 
-#### Panel 2: Debt to GDP Ratio (IND)
-```typescript
-export interface DebtToGdpValues {
-  indiaFy25: StatTileMetric;       // 3.82%, -0.81pp
-  indVsUs: StatTileMetric;         // 3.82%, -0.81pp
-}
+### 1.4 `ticker_latest` Table
+Holds the most recent snapshot of market index quotes for the header ticker.
 
-export interface DebtToGdpPoint {
-  date: string;                    // "25 Jul", "1 Aug", "8 Aug", "15 Aug", "22 Aug"
-  ratio: number | null;            // e.g. 80.5, 70.2, 58.4, 72.1
-  isHighlighted?: boolean;         // true if a pill badge is rendered
-  highlightLabel?: string;         // e.g. "6.3%"
-}
-
-export type DebtToGdpSeries = DebtToGdpPoint[];
+```sql
+CREATE TABLE IF NOT EXISTS ticker_latest (
+    symbol VARCHAR(32) PRIMARY KEY,          -- 'SENSEX', 'NIFTY BANK', 'NIFTY IT'
+    name VARCHAR(64) NOT NULL,
+    last NUMERIC(12, 2) NOT NULL,
+    change NUMERIC(10, 2) NOT NULL,
+    pct_change NUMERIC(6, 2) NOT NULL,
+    market_status VARCHAR(16) NOT NULL CHECK (market_status IN ('open', 'closed', 'stale')),
+    source_id VARCHAR(64) NOT NULL REFERENCES sources(id),
+    as_of TIMESTAMPTZ NOT NULL,
+    fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 ```
 
-#### Panel 3: Imports, Exports & Trade Balance
-```typescript
-export interface TradeBalanceValues {
-  exports: StatTileMetric;         // $382.9 B, -0.81pp
-  imports: StatTileMetric;         // $382.9 B, -0.81pp
-}
+### 1.5 `ticker_history` Table
+Stores rolling snapshots for auditability and chart trend analysis; auto-pruned to retain 7 days.
 
-export interface TradeBalancePoint {
-  year: string;                    // "2021", "2022", "2023", "2024", "2025"
-  importsValue: number | null;     // e.g. 8.7 (represented in bars)
-  exportsValue: number | null;     // e.g. 6.3 (represented in bars)
-  tradeBalance: number | null;     // e.g. 6.3 (represented in green line with pills)
-}
+```sql
+CREATE TABLE IF NOT EXISTS ticker_history (
+    id BIGSERIAL PRIMARY KEY,
+    symbol VARCHAR(32) NOT NULL,
+    last NUMERIC(12, 2) NOT NULL,
+    pct_change NUMERIC(6, 2) NOT NULL,
+    as_of TIMESTAMPTZ NOT NULL
+);
 
-export type TradeBalanceSeries = TradeBalancePoint[];
+CREATE INDEX IF NOT EXISTS idx_ticker_history_symbol_asof ON ticker_history(symbol, as_of DESC);
 ```
 
-#### Panel 4: GST Tax Collection (YOY%)
-```typescript
-export interface GstCollectionValues {
-  collections: StatTileMetric;     // 3.82%, -0.81pp
-  monthlyAverage: StatTileMetric;  // 1.97, -0.81pp
-}
+### 1.6 `collector_runs` Table
+Audit ledger tracking execution, health, and error states of background collectors.
 
-export interface GstCollectionPoint {
-  year: string;                    // "2021", "2022", "2023", "2024", "2025"
-  collectionRate: number | null;   // e.g. 8.7 (blue bars)
-  averageRate: number | null;      // e.g. 6.3 (yellow trendline)
-}
+```sql
+CREATE TABLE IF NOT EXISTS collector_runs (
+    id BIGSERIAL PRIMARY KEY,
+    job VARCHAR(64) NOT NULL,                -- 'ticker', 'gdp', 'debt', 'trade', 'gst', 'inflation', 'expenditure'
+    started_at TIMESTAMPTZ NOT NULL,
+    finished_at TIMESTAMPTZ,
+    status VARCHAR(32) NOT NULL CHECK (status IN ('success', 'failed', 'circuit_open', 'skipped')),
+    rows INTEGER DEFAULT 0,
+    error TEXT
+);
 
-export type GstCollectionSeries = GstCollectionPoint[];
+CREATE INDEX IF NOT EXISTS idx_collector_runs_job_started ON collector_runs(job, started_at DESC);
 ```
 
-#### Panel 5: Inflation (IND)
-```typescript
-export interface InflationValues {
-  inflationRate: StatTileMetric;   // 2.1%, -0.2pp
-  rbiTarget: StatTileMetric;       // 4%, -0.2pp
-}
+### 1.7 `seed_files` Table
+Tracks loaded seed CSV checksums to guarantee idempotent execution.
 
-export interface InflationPoint {
-  year: string;                    // "2021", "2022", "2023", "2024", "2025"
-  cpiRate: number | null;          // Cyan line rate
-  isHighlighted?: boolean;
-  highlightLabel?: string;         // e.g. "6.3%"
-}
-
-export type InflationSeries = InflationPoint[];
-```
-
-#### Panel 6: Government Expenditure
-```typescript
-export interface GovtExpenditureValues {
-  totalExpenditure: StatTileMetric;   // 4.82%, -0.2pp
-  capitalExpenditure: StatTileMetric; // 3.82%, -0.2pp
-}
-
-export interface GovtExpenditurePoint {
-  year: string;                    // "2021", "2022", "2023", "2024", "2025"
-  revenueExpenditure: number | null; // e.g. 7.9 (blue stacked segment)
-  capitalExpenditure: number | null; // e.g. 23.2 (orange stacked segment)
-  totalExpenditure: number | null;   // e.g. 31.2 (sum labeled on bar top)
-}
-
-export type GovtExpenditureSeries = GovtExpenditurePoint[];
+```sql
+CREATE TABLE IF NOT EXISTS seed_files (
+    path VARCHAR(255) PRIMARY KEY,
+    checksum VARCHAR(64) NOT NULL,           -- SHA-256
+    loaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 ```
 
 ---
 
-### 1.4 Real-Time Market Ticker Quotes
-```typescript
-export interface TickerQuote {
-  symbol: string;                  // "SENSEX", "NIFTY BANK", "NIFTY IT"
-  currentPrice: number;            // 73158.24
-  changePoints: number;            // +305.10 or -56.30
-  changePercent: number;           // +0.42 or -0.12
-  isPositive: boolean;             // true for green (#69F6B8), false for red (#FF716A)
-  updatedAt: string;               // ISO 8601 string
-}
+## 2. Pydantic v2 Domain Models
 
-export interface TickerStreamPayload {
-  timestamp: string;
-  quotes: TickerQuote[];
-}
+### 2.1 Standard Indicator Response Envelope
+
+```python
+from typing import List, Optional, Literal
+from pydantic import BaseModel, Field
+from datetime import date, datetime
+
+SourceType = Literal['nse', 'external', 'external-curated']
+IndicatorStatus = Literal['ok', 'stale', 'unavailable']
+DeltaDirection = Literal['positive', 'negative', 'neutral']
+EstimateBasis = Literal['actual', 'revised_estimate', 'budget_estimate']
+
+class SourceInfo(BaseModel):
+    name: str
+    type: SourceType
+    url: str
+
+class StatTile(BaseModel):
+    label: str
+    value: Optional[float] = None
+    unit: Optional[str] = None
+    change: Optional[float] = None
+    change_unit: Optional[str] = "pp"
+    formatted_value: Optional[str] = None
+    formatted_change: Optional[str] = None
+    delta_direction: DeltaDirection = "neutral"
+
+class SeriesPoint(BaseModel):
+    period: str
+    value: Optional[float] = None
+    basis: Optional[EstimateBasis] = None
+
+class SeriesItem(BaseModel):
+    name: str
+    points: List[SeriesPoint]
+
+class IndicatorEnvelope(BaseModel):
+    indicator: str
+    title: str
+    subtitle: Optional[str] = None
+    tiles: List[StatTile]
+    series: List[SeriesItem]
+    source: SourceInfo
+    as_of: str
+    fetched_at: datetime
+    status: IndicatorStatus
+```
+
+### 2.2 Market Ticker Models
+
+```python
+MarketStatus = Literal['open', 'closed', 'stale']
+
+class TickerQuote(BaseModel):
+    symbol: str
+    name: str
+    last: float
+    change: float
+    pct_change: float
+    market_status: MarketStatus
+    source: str
+    as_of: datetime
+
+class TickerSnapshotResponse(BaseModel):
+    timestamp: datetime
+    quotes: List[TickerQuote]
+
+class TickerStreamEvent(BaseModel):
+    id: int
+    data: TickerSnapshotResponse
+```
+
+### 2.3 Authentication Models
+
+```python
+UserRole = Literal['viewer', 'admin']
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+class UserProfile(BaseModel):
+    id: int
+    username: str
+    role: UserRole
+
+class LoginResponse(BaseModel):
+    user: UserProfile
+    access_token: str
+    token_type: str = "bearer"
+    expires_in_seconds: int = 3600
+
+class StreamTicketResponse(BaseModel):
+    ticket: str
+    expires_in_seconds: int = 30
 ```
 
 ---
 
-### 1.5 Authentication & User Session
-```typescript
-export interface AuthUser {
-  id: string;
-  email: string;
-  name: string;
-  role: 'analyst' | 'admin';
-}
+## 3. Business Logic & Calculation Rules
 
-export interface AuthSessionState {
-  user: AuthUser | null;
-  accessToken: string | null;      // Strictly in-memory
-  expiresAt: number | null;        // Unix epoch ms
-  isAuthenticated: boolean;
-  isLoading: boolean;
-}
+### 3.1 Stat Tile Change Rules (Decision D3)
+1. **Rate Series (GDP Growth, Inflation, Debt to GDP)**:
+   $$\text{change} = \text{latest rate} - \text{previous rate} \quad (\text{in percentage points, pp})$$
+2. **Level Series (Exports, Imports, GST Collections, Total/Capital Expenditure)**:
+   $$\text{YoY growth}(t) = \frac{\text{value}(t) - \text{value}(t-1)}{\text{value}(t-1)} \times 100$$
+   $$\text{change} = \text{YoY growth}(\text{latest}) - \text{YoY growth}(\text{previous}) \quad (\text{in pp})$$
+3. **Missing Data**:
+   If either $\text{latest}$ or $\text{previous}$ is `null` or missing, $\text{change} = \text{null}$.
 
-export interface LoginResponse {
-  user: AuthUser;
-  accessToken: string;
-  expiresInSeconds: number;
-}
-```
+### 3.2 Indicator Staleness State Machine (Decision D15)
+- Given expected refresh interval $R$:
+  - If $\text{now} - \text{fetched\_at} > 2 \times R \implies \text{status} = \text{"stale"}$.
+  - If the last collector run failed but historical data exists $\implies \text{status} = \text{"stale"}$.
+  - If no data has ever been collected $\implies \text{status} = \text{"unavailable"}$.
+  - Otherwise $\implies \text{status} = \text{"ok"}$.
 
----
-
-## 2. Panel Lifecycle State Machine
-
-Each panel card transitions through discrete states:
-
-```mermaid
-stateDiagram-v2
-    [*] --> Loading : Mount
-    Loading --> Active : Data Received (status=ok)
-    Loading --> Stale : Cached Data Received (status=stale)
-    Loading --> Empty : Empty Data Received (series=[])
-    Loading --> Unavailable : Service Down (status=unavailable)
-    Loading --> Error : HTTP / Network Failure
-    
-    Active --> Stale : TTL Expired & Stale Feed
-    Active --> Loading : Explicit Refresh Triggered
-    
-    Stale --> Loading : Retry Triggered
-    Empty --> Loading : Retry Triggered
-    Unavailable --> Loading : Retry Triggered
-    Error --> Loading : Retry Triggered
-```
-
-### State Render Rules
-| State | Visual Treatment | Missing Value Behavior |
-| :--- | :--- | :--- |
-| **Loading** | Render animated dark skeleton matching exact card and chart dimensions. | N/A |
-| **Active** | Full visual rendering of stats and ECharts canvas. | Any null metric renders as `"—"`. |
-| **Stale** | Normal chart/stat presentation with an overlaid or header `"STALE"` badge. | Retains cached figures; null renders as `"—"`. |
-| **Empty** | Centered empty dataset illustration and `"No data reported for this period"`. | All metrics render as `"—"`. |
-| **Unavailable** | Warning banner and `"Data feed temporarily decommissioned or unavailable"`. | All metrics render as `"—"`. |
-| **Error** | Destructive notification banner with `"Failed to load indicator"` and a `[Retry]` action. | All metrics render as `"—"`. |
-
----
-
-## 3. Data Integrity & Validation Rules
-
-1. **Strict Non-Fabrication**: Under no circumstances should missing or undefined numerical data be defaulted to `0` or interpolated. If `value == null`, display `"—"`.
-2. **Attribution Requirement**: Every indicator panel MUST contain a non-empty `source` string and `as_of` date. If `source_type === 'external'`, a visual badge or text indicator highlights the non-NSE provenance.
-3. **Stacked Sum Consistency**: For Panel 6 (Expenditure), if either `revenueExpenditure` or `capitalExpenditure` is null, `totalExpenditure` must render as `"—"` rather than displaying partial totals.
+### 3.3 Market Status State Machine (Decision D11)
+- Evaluated against `Asia/Kolkata` time:
+  - If Monday–Friday, `09:15 <= current_time <= 15:30`:
+    - If `now - as_of <= 120s` $\implies \text{"open"}$.
+    - If `now - as_of > 120s` (upstream quote timestamp stopped updating during market hours) $\implies \text{"closed"}$ (Exchange Holiday detected).
+  - Outside these hours or weekends $\implies \text{"closed"}$.

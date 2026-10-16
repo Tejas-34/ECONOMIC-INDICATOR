@@ -1,121 +1,159 @@
-# Quickstart & Validation Guide: Economic Indicator Dashboard
+# Quickstart & Validation Guide: Economic Indicator Dashboard (Full-Stack)
 
 **Feature**: [001-economic-indicator-dashboard](file:///Users/tejaspatare/Documents/AdityaBirla/Economics-Indicator/specs/001-economic-indicator-dashboard/spec.md)  
-**Date**: 2026-10-15  
+**Date**: 2026-10-16  
 **Status**: Ready for Implementation
 
-This guide provides setup instructions and runnable validation steps to verify the dashboard functionality, visual fidelity, real-time ticker, and authentication states.
+This guide provides instructions to bootstrap, configure, run, and validate the FastAPI backend and React frontend both locally (mock and live modes) and in Docker Compose.
 
 ---
 
-## 1. Prerequisites & Environment Setup
+## 1. Prerequisites & Environment Configuration
 
 ### Required Tools
-- Node.js >= 18.x
-- npm >= 9.x or pnpm >= 8.x
+- **Python**: 3.11+
+- **PostgreSQL**: 16.x (local or Docker)
+- **Node.js**: 18.x+ (with `npm`)
+- **Docker & Docker Compose**: (optional, for containerized run)
 
-### Environment Configuration
-Create a `.env` file in the project root:
+### Backend Environment Configuration
+Create `backend/.env` (from `backend/.env.example`):
 
 ```env
-# Mock Mode (default for local development & visual evaluation)
-VITE_USE_MOCKS=true
-VITE_API_BASE_URL=/api
-
-# For production integration:
-# VITE_USE_MOCKS=false
-# VITE_API_BASE_URL=https://api.macro-analytics.adityabirla.com
+DATA_MODE=mock
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/economic_indicators
+JWT_SECRET=c2VjdXJlX2p3dF9zZWNyZXRfa2V5X2Zvcl9lY29ub21pY19pbmRpY2F0b3JfZGFzaGJvYXJkXzIwMjY=
+EVAL_USERNAME=analyst@adityabirla.com
+EVAL_PASSWORD_HASH=$2b$12$e6mO7jJ6g5lWkY8g2k.yquMhT6UfO6b5HjCgV4s9R2E1k3m8t2Y1e
+FRONTEND_ORIGIN=http://localhost:5173
 ```
 
-### Installation
-```bash
-npm install
+### Frontend Environment Configuration
+In `frontend/.env`:
+
+```env
+VITE_API_BASE_URL=http://localhost:8000
+VITE_USE_MOCKS=false
 ```
 
 ---
 
-## 2. Local Development & Demo Execution
+## 2. Backend Setup & Local Run
 
-Start the Vite development server:
+### 2.1 Virtual Environment & Dependencies
 ```bash
+cd backend
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 2.2 Database Initialization & Migrations (Live Mode)
+```bash
+# Run numbered SQL migrations
+python scripts/migrate.py
+
+# Seed default evaluation analyst user
+python scripts/seed_user.py
+
+# Idempotently load seed CSVs (data/seed/gst_monthly.csv, government_expenditure.csv)
+python scripts/load_seeds.py
+```
+
+### 2.3 Diagnostic Upstream Probe
+Run the standalone diagnostic tool to verify upstream reachability (World Bank, IMF, NSE, BSE):
+```bash
+python scripts/probe_sources.py
+```
+
+### 2.4 Start Backend Server
+```bash
+# In mock mode:
+DATA_MODE=mock uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+# In live mode (requires Postgres running):
+DATA_MODE=live uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+---
+
+## 3. Frontend Local Run
+
+In a separate terminal:
+```bash
+cd frontend
+npm install
 npm run dev
 ```
-
 Navigate to `http://localhost:5173`.
 
-### Demo Analyst Credentials
-When prompted at the sign-in screen:
-- **Email**: `analyst@adityabirla.com`
-- **Password**: `Analyst@2026`
+---
+
+## 4. Docker Compose Deployment
+
+To run both backend and PostgreSQL in an isolated private network:
+```bash
+docker-compose up --build
+```
+- API is accessible at `http://localhost:8000`.
+- PostgreSQL binds exclusively to the internal Docker network (no public port published).
+- Database migrations and seed loader execute automatically on container startup.
 
 ---
 
-## 3. End-to-End Validation Scenarios
+## 5. Verification & Test Execution
 
-### Scenario A: Fixed 1214 x 2159 Viewport & Visual Layout
-1. Open Chrome DevTools (`Cmd + Option + I`).
-2. Toggle Device Toolbar and set explicit dimensions: **1214 px width x 2159 px height** (Device Pixel Ratio: 1.0).
-3. **Verify**:
-   - Header "ECONOMIC INDICATOR" is centered over the dark candlestick background graphic.
-   - Red "LIVE" badge and indicator dot appear on the left of the ticker bar.
-   - Exactly 6 indicator panels render in a 2-column by 3-row grid.
-   - No horizontal scrollbars appear anywhere on the page (`window.innerWidth === document.documentElement.scrollWidth`).
-   - Card dimensions measure `582px` width x `544px` height with `24px` grid gap.
+### 5.1 Backend Pytest Suite
+```bash
+cd backend
+pytest -v
+```
+Test suite validates:
+- **Authentication**: Successful login, token expiration (60m), role enforcement (`viewer` vs `admin`), and rate limiting (5 req/min per IP).
+- **SQL Injection**: Parameterized SQL security across endpoints.
+- **Collector Resilience**: Retries with exponential backoff + jitter, circuit breaker (5 failures -> 5m pause), and domain plausibility boundaries.
+- **Staleness Logic**: Indicators older than $2 \times \text{refresh\_interval}$ labelled `stale`.
+- **Market Hours**: Evaluation of `Asia/Kolkata` time and holiday quote stall detection.
+- **SSE Stream**: Single-use 30s ticket enforcement, event queue delivery, 15s heartbeats, ring buffer replay via `Last-Event-ID`.
+- **Mock Mode Parity**: Verifies that `DATA_MODE=mock` responses match static fixtures.
 
-### Scenario B: Live Ticker Scrolling & Pause on Hover
-1. Observe the horizontal ticker quotes (`SENSEX`, `NIFTY BANK`, `NIFTY IT`).
-2. **Verify**:
-   - Quotes scroll smoothly from right to left in a continuous loop.
-   - Positive price and percent changes render in green (`#69F6B8` or `#45FF5B`).
-   - Negative price and percent changes render in red (`#FF716A` or `#FF0000`).
-3. Hover mouse pointer over the ticker bar.
-4. **Verify**: The ticker immediately freezes / pauses in place.
-5. Move mouse pointer out of the ticker bar.
-6. **Verify**: The scrolling animation resumes seamlessly without jumping.
+### 5.2 Frontend Tests
+```bash
+# Unit tests
+npm test
 
-### Scenario C: Chart Interactions & Series Toggling
-1. Move mouse pointer over bars in Panel 1 ("GDP Growth").
-2. **Verify**: A dark hover tooltip appears displaying year, series (India or World), and exact percentage.
-3. Click the "India" legend item.
-4. **Verify**: The blue India bars toggle to hidden; only orange World bars remain visible.
-5. Click "India" legend again.
-6. **Verify**: Blue bars re-appear.
-
-### Scenario D: Panel Lifecycle States Demonstration
-Toggle mock response states in developer tools or via state test toggles:
-- **Loading State**: Reload page or throttle network to "Slow 3G". Verify dark skeleton placeholder cards render without shifting layout.
-- **Stale State**: In mock mode, set `status: 'stale'`. Verify the "STALE" badge is displayed while historical data remains legible.
-- **Unavailable State**: In mock mode, set `status: 'unavailable'`. Verify unavailable notice is rendered and figures show as `" — "`.
-- **Error State**: Simulate a network error. Verify the panel displays an error card with a `[Retry]` action.
-
-### Scenario E: Authentication & Automatic Session Expiry
-1. Log in with demo analyst credentials. Access dashboard.
-2. Manually sign out via the navigation control.
-3. **Verify**: User is redirected to `/login`; attempting to directly navigate to `/` redirects back to `/login`.
-4. Log in again. Simulate token expiration (e.g. trigger session timeout).
-5. **Verify**: The application redirects to `/login?session_expired=true` within 1 second.
+# Visual regression tests (1214 x 2159 px benchmark)
+npm run test:visual
+```
 
 ---
 
-## 4. Automated Testing Commands
+## 6. End-to-End Validation Scenarios
 
-### Unit & Component Tests
-```bash
-# Run Vitest test suite
-npm run test
+### Scenario 1: Authentication & Stream Ticket Acquisition
+1. Perform analyst login:
+   ```bash
+   curl -X POST http://localhost:8000/api/auth/login \
+     -H "Content-Type: application/json" \
+     -d '{"username":"analyst@adityabirla.com","password":"Analyst@2026"}'
+   ```
+2. Request single-use SSE ticket using the Bearer token:
+   ```bash
+   curl -X POST http://localhost:8000/api/auth/stream-ticket \
+     -H "Authorization: Bearer <TOKEN>"
+   ```
+3. Connect to live ticker stream:
+   ```bash
+   curl -N "http://localhost:8000/api/stream/ticker?ticket=<TICKET>"
+   ```
+   Observe quote stream events and 15s heartbeat comments. Reusing the ticket results in HTTP 403.
 
-# Run tests in watch mode
-npm run test:watch
-```
-
-### Visual Regression & Overlay Validation
-```bash
-# Execute Playwright screenshot comparison against design/reference.png
-npx playwright test tests/visual/dashboard.spec.ts
-```
-
-### Linting & Formatting
-```bash
-npm run lint
-npm run format:check
-```
+### Scenario 2: Indicator Envelope & Tile Change Verification
+1. Request GDP indicator data:
+   ```bash
+   curl -H "Authorization: Bearer <TOKEN>" http://localhost:8000/api/indicators/gdp-growth
+   ```
+2. Verify response matches standard envelope:
+   - Contains `indicator`, `tiles`, `series`, `source`, `as_of`, `fetched_at`, and `status`.
+   - Rate series deltas calculated as $\text{latest} - \text{previous}$ in `pp`.
+   - Missing data renders as `null` with no invented numbers.
