@@ -1,11 +1,11 @@
 {
-  "timestamp": "2026-10-16T09:51:12.745883+00:00",
+  "timestamp": "2026-10-16T10:25:06.021278+00:00",
   "probes": [
     {
       "target": "World Bank API (GDP)",
       "url": "https://api.worldbank.org/v2/country/IND/indicator/NY.GDP.MKTP.KD.ZG?format=json",
       "status_code": 200,
-      "latency_ms": 461.33,
+      "latency_ms": 666.47,
       "reachable": true,
       "error": null
     },
@@ -13,7 +13,7 @@
       "target": "IMF DataMapper (Debt-to-GDP)",
       "url": "https://www.imf.org/external/datamapper/api/v1/GGXWDG_NGDP/IND",
       "status_code": 200,
-      "latency_ms": 6083.48,
+      "latency_ms": 829.58,
       "reachable": true,
       "error": null
     },
@@ -21,7 +21,7 @@
       "target": "NSE allIndices (NIFTY BANK / IT)",
       "url": "https://www.nseindia.com/api/allIndices",
       "status_code": 200,
-      "latency_ms": 1185.56,
+      "latency_ms": 1472.84,
       "reachable": true,
       "cookies_captured": true,
       "error": null
@@ -30,7 +30,7 @@
       "target": "BSE API (SENSEX)",
       "url": "https://api.bseindia.com/BseIndiaAPI/api/SensexGraphData/w",
       "status_code": 403,
-      "latency_ms": 433.34,
+      "latency_ms": 342.79,
       "reachable": false,
       "error": null
     }
