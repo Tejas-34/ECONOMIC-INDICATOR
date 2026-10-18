@@ -85,11 +85,6 @@ The user interface handles network disruptions and missing data gracefully:
 - SQL Injection Protection: All database queries use parameterized SQL through psycopg3. No dynamic SQL concatenation is used.
 - Browser Security: Client code contains zero external API credentials or upstream private keys.
 
-### Evaluation Credentials
-
-- Username: analyst@adityabirla.com
-- Password: Analyst@2026
-- Role: admin
 
 ---
 
@@ -182,11 +177,6 @@ Open your browser and navigate to:
 ```text
 http://<YOUR-EC2-PUBLIC-IP>
 ```
-
-Log in using the evaluation credentials:
-- Username: analyst@adityabirla.com
-- Password: Analyst@2026
-
 ---
 
 ## Local Development
